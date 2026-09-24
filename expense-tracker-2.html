@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kharcha – Expense Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F1F4F2;--sf:#fff;--ink:#14211E;--mut:#5F6F6A;--bd:#DCE3E0;--pri:#0F766E;--pri-i:#fff;--acc:#E9A23B;--err:#C2410C;--ok:#15803D;
+--fd:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;--fb:'DM Sans','Segoe UI',system-ui,sans-serif;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0D1412;--sf:#16201D;--ink:#E8F0ED;--mut:#93A39D;--bd:#26332F;--pri:#2DD4BF;--pri-i:#062521;--acc:#FBBF24;--err:#FB923C;--ok:#4ADE80}}
+:root[data-theme="dark"]{--bg:#0D1412;--sf:#16201D;--ink:#E8F0ED;--mut:#93A39D;--bd:#26332F;--pri:#2DD4BF;--pri-i:#062521;--acc:#FBBF24;--err:#FB923C;--ok:#4ADE80}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--fb)}
+main{max-width:960px;margin:0 auto;padding:0 16px 48px}
+header{display:flex;align-items:center;justify-content:space-between;padding:20px 0 12px}
+h1{font:700 26px var(--fd);margin:0;letter-spacing:-.02em}h2{font:700 18px var(--fd);margin:0 0 12px}
+.ic{background:none;border:1px solid var(--bd);color:var(--ink);border-radius:10px;width:40px;height:40px;font-size:18px;cursor:pointer}
+nav{display:flex;gap:4px;border-bottom:1px solid var(--bd);margin-bottom:20px}
+nav button{background:none;border:0;border-bottom:3px solid transparent;color:var(--mut);font:500 15px var(--fb);padding:10px 14px;cursor:pointer}
+nav button[aria-selected=true]{color:var(--ink);border-color:var(--pri);font-weight:700}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+section{display:none}section.on{display:block}
+.grid{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:760px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1.4fr 1fr 1fr}}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:18px}
+.lbl{color:var(--mut);font-size:14px}
+.big{font:700 44px/1.1 var(--fd);letter-spacing:-.03em;margin:4px 0}
+.num{font:700 26px var(--fd);letter-spacing:-.02em}
+.up{color:var(--err)}.down{color:var(--ok)}.sm{font-size:14px}
+svg{display:block;width:100%;height:auto}svg text{fill:var(--mut);font:12px var(--fb)}
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bd)}
+.row:last-child{border:0}.row .b{flex:1;min-width:0}.row .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:18px;flex:none}
+.amt{font:700 16px var(--fd);white-space:nowrap}
+.x{background:none;border:0;color:var(--mut);cursor:pointer;font-size:18px;padding:6px}
+label{display:block;font-size:14px;color:var(--mut);margin:10px 0 4px}
+input,select,textarea{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;font:16px var(--fb)}
+input[type=color]{padding:2px;height:42px}textarea{min-height:110px;resize:vertical}
+.btn{background:var(--pri);color:var(--pri-i);border:0;border-radius:10px;padding:11px 18px;font:700 15px var(--fb);cursor:pointer;margin-top:14px}
+.btn.g{background:none;color:var(--ink);border:1px solid var(--bd)}
+.bar{height:10px;border-radius:5px;background:var(--bd);overflow:hidden;margin-top:4px}.bar i{display:block;height:100%}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--bg);border:1px solid var(--bd);color:var(--mut)}
+.pv{border:1px dashed var(--pri);border-radius:12px;padding:4px 14px 14px;margin-top:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}
+#toast.on{opacity:1}
+.empty{color:var(--mut);text-align:center;padding:24px 0}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Kharcha</h1><button class="ic" id="theme" aria-label="Toggle dark mode">🌓</button></header>
+<nav role="tablist">
+<button role="tab" data-t="dash" aria-selected="true">Dashboard</button>
+<button role="tab" data-t="add">Add entry</button>
+<button role="tab" data-t="cats">Categories</button>
+</nav>
+
+<section id="dash" class="on">
+<div class="grid g3">
+<div class="card"><div class="lbl">Daily average this month</div><div class="big" id="avg">₹0</div><div class="sm" id="avgT"></div></div>
+<div class="card"><div class="lbl">Spent this month</div><div class="num" id="tot">₹0</div><div class="lbl sm" id="cnt"></div></div>
+<div class="card"><div class="lbl">Biggest expense</div><div class="num" id="max">–</div><div class="lbl sm t" id="maxD"></div></div>
+</div>
+<div class="grid g2" style="margin-top:16px">
+<div class="card"><div class="lbl">Income this month</div><div class="big" id="inc">₹0</div><div class="sm" id="net"></div></div>
+<div class="card"><h2>Income by payment mode</h2><div id="mode"></div></div>
+</div>
+<div class="grid g2" style="margin-top:16px">
+<div class="card"><h2>Last 7 days</h2><div id="wk"></div><div class="sm lbl" id="wkT"></div></div>
+<div class="card"><h2>By category</h2><div id="cat"></div></div>
+</div>
+<div class="card" style="margin-top:16px"><h2>Recent transactions</h2><div id="list"></div></div>
+</section>
+
+<section id="add">
+<div class="grid g2">
+<div class="card"><h2>Add manually</h2>
+<label for="ma">Amount (₹)</label><input id="ma" type="number" min="0" step="0.01" inputmode="decimal">
+<label for="mc">Category</label><select id="mc"></select>
+<label for="md">Description</label><input id="md" maxlength="80" placeholder="e.g. Chai and samosa">
+<label for="mdt">Date</label><input id="mdt" type="date">
+<button class="btn" id="msave">Save expense</button></div>
+<div class="card"><h2>Import from UPI SMS</h2>
+<p class="lbl sm" style="margin:0">Paste a bank SMS. It is read in your browser and only the amount, merchant, date and reference number are kept. The SMS text is never stored.</p>
+<label for="sms">Bank SMS</label><textarea id="sms" placeholder="Rs.250.00 debited from A/c XX1234 on 24-09-26 to VPA swiggy@icici (UPI Ref No 426812345678)"></textarea>
+<button class="btn" id="parse">Read SMS</button>
+<div id="pv"></div></div>
+</div>
+<div class="card" style="margin-top:16px"><h2>Add income</h2>
+<div class="two"><div><label for="ia">Amount (₹)</label><input id="ia" type="number" min="0" step="0.01" inputmode="decimal"></div><div><label for="ip">Received via</label><select id="ip"></select></div></div>
+<div class="two"><div><label for="in">Source</label><input id="in" maxlength="80" placeholder="e.g. Salary, Freelance, Cash gift"></div><div><label for="idt">Date</label><input id="idt" type="date"></div></div>
+<button class="btn" id="isave">Save income</button></div>
+</section>
+
+<section id="cats">
+<div class="grid g2">
+<div class="card"><h2>Your categories</h2><div id="clist"></div></div>
+<div class="card"><h2>New category</h2>
+<div class="two"><div><label for="ci">Emoji</label><input id="ci" maxlength="4" value="🏷️"></div><div><label for="cco">Colour</label><input id="cco" type="color" value="#0F766E"></div></div>
+<label for="cn">Name</label><input id="cn" maxlength="30">
+<button class="btn" id="cadd">Add category</button></div>
+</div>
+<div class="card" style="margin-top:16px"><h2>Data</h2>
+<button class="btn g" id="csv" style="margin-top:0">Download CSV</button>
+<button class="btn g" id="demo" style="margin-top:0">Load sample data</button>
+<button class="btn g" id="wipe" style="margin-top:0">Delete all transactions</button></div>
+</section>
+</main>
+<div id="toast" role="status"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const DEF=[["🍔","Food","#F59E0B"],["🚗","Transport","#3B82F6"],["🏥","Health","#EF4444"],["🛍️","Shopping","#EC4899"],["🏠","Rent & bills","#8B5CF6"],["📱","Subscriptions","#06B6D4"],["🎮","Entertainment","#10B981"],["✈️","Travel","#F97316"],["📚","Education","#6366F1"],["🎁","Gifts","#D946EF"],["💼","Work","#64748B"],["📦","Others","#94A3B8"]];
+const KW={Food:/swiggy|zomato|restaurant|cafe|dominos|pizza|kitchen|bakery|mart|grocer|blinkit|zepto|bigbasket|chai/i,Transport:/uber|ola|rapido|irctc|metro|fuel|petrol|hpcl|bpcl|iocl|fastag/i,Subscriptions:/netflix|spotify|hotstar|prime|jio|airtel|vi\b|youtube/i,Shopping:/amazon|flipkart|myntra|ajio|meesho/i,Health:/pharm|apollo|hospital|clinic|medic/i,Entertainment:/bookmyshow|pvr|inox/i};
+const MODES=[['UPI','📲'],['Cash','💵'],['Bank transfer','🏦'],['Cheque','🧾'],['Card / wallet','💳'],['Other','🔘']];
+const modeOf=p=>MODES.find(m=>m[0]===p)||MODES[5];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const inr=n=>'₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:n%1?2:0});
+const uid=()=>Math.random().toString(36).slice(2,10);
+function load(){try{const s=JSON.parse(localStorage.getItem('kharcha1'));if(s&&s.cats){s.inc=s.inc||[];return s}}catch(e){}return{cats:DEF.map(c=>({id:uid(),i:c[0],n:c[1],c:c[2]})),exp:[],inc:[],theme:null}}
+let S=load();
+const save=()=>{try{localStorage.setItem('kharcha1',JSON.stringify(S))}catch(e){}};
+let tt;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2400)};
+const cat=id=>S.cats.find(c=>c.id===id)||S.cats.find(c=>c.n==='Others')||S.cats[0];
+const catByName=n=>S.cats.find(c=>c.n===n)||cat();
+const sum=a=>a.reduce((s,e)=>s+e.a,0);
+const today=()=>iso(new Date());
+
+/* theme */
+function theme(){if(S.theme)document.documentElement.dataset.theme=S.theme}
+$('#theme').onclick=()=>{const dark=document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;S.theme=dark?'light':'dark';theme();save()};
+
+/* tabs */
+$$('nav button').forEach(b=>b.onclick=()=>{$$('nav button').forEach(x=>x.setAttribute('aria-selected',x===b));$$('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.t))});
+
+/* dashboard */
+function render(){
+  const now=new Date(),ym=iso(now).slice(0,7),pym=iso(new Date(now.getFullYear(),now.getMonth()-1,1)).slice(0,7);
+  const cur=S.exp.filter(e=>e.d.startsWith(ym)),prev=S.exp.filter(e=>e.d.startsWith(pym));
+  const avg=sum(cur)/now.getDate(),pavg=sum(prev)/new Date(now.getFullYear(),now.getMonth(),0).getDate();
+  $('#avg').textContent=inr(Math.round(avg));
+  $('#avgT').innerHTML=pavg?(()=>{const p=Math.round((avg-pavg)/pavg*100);return `<span class="${p>0?'up':'down'}">${p>0?'▲':'▼'} ${Math.abs(p)}%</span> vs last month (${inr(Math.round(pavg))}/day)`})():'No data for last month yet';
+  $('#tot').textContent=inr(sum(cur));$('#cnt').textContent=cur.length+' transactions';
+  const mx=cur.reduce((m,e)=>!m||e.a>m.a?e:m,null);
+  $('#max').textContent=mx?inr(mx.a):'–';$('#maxD').textContent=mx?(mx.m||mx.n||cat(mx.c).n):'';
+  /* income */
+  const ci=S.inc.filter(e=>e.d.startsWith(ym)),ti=sum(ci),spent=sum(cur);
+  $('#inc').textContent=inr(ti);
+  $('#net').innerHTML=(ti||spent)?`<span class="${ti>=spent?'down':'up'}">${ti>=spent?'Saved':'Overspent by'} ${inr(Math.abs(ti-spent))}</span> after ${inr(spent)} spent`:'';
+  const bm={};ci.forEach(e=>bm[e.p]=(bm[e.p]||0)+e.a);
+  $('#mode').innerHTML=ti?Object.entries(bm).sort((a,b)=>b[1]-a[1]).map(([p,v])=>`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between" class="sm"><span>${modeOf(p)[1]} ${esc(p)}</span><span><b>${inr(v)}</b> <span class="lbl">${Math.round(v/ti*100)}%</span></span></div><div class="bar"><i style="width:${v/ti*100}%;background:var(--pri)"></i></div></div>`).join(''):'<div class="empty">No income recorded this month.</div>';
+  /* week chart */
+  const days=[...Array(14)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-13+i);const k=iso(d);return{k,l:d.toLocaleDateString('en-IN',{weekday:'short'}).slice(0,2),v:sum(S.exp.filter(e=>e.d===k))}});
+  const w=days.slice(7),pw=sum(days.slice(0,7)),cw=sum(w),M=Math.max(1,...w.map(d=>d.v));
+  $('#wk').innerHTML=`<svg viewBox="0 0 350 150" role="img" aria-label="Spending per day for the last 7 days">${w.map((d,i)=>{const h=d.v/M*100;return `<rect x="${i*50+9}" y="${112-h}" width="32" height="${Math.max(h,d.v?3:1)}" rx="5" fill="${i===6?'var(--pri)':'var(--acc)'}"/><text x="${i*50+25}" y="132" text-anchor="middle">${d.l}</text>${d.v?`<text x="${i*50+25}" y="${106-h}" text-anchor="middle">${d.v>=1000?(d.v/1000).toFixed(1)+'k':Math.round(d.v)}</text>`:''}`}).join('')}</svg>`;
+  $('#wkT').innerHTML=`${inr(cw)} this week`+(pw?` · <span class="${cw>pw?'up':'down'}">${cw>pw?'▲':'▼'} ${Math.abs(Math.round((cw-pw)/pw*100))}%</span> vs previous 7 days`:'');
+  /* categories */
+  const by={};cur.forEach(e=>by[e.c]=(by[e.c]||0)+e.a);
+  const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]),T=sum(cur)||1;
+  $('#cat').innerHTML=rows.length?rows.map(([id,v])=>{const c=cat(id);return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between" class="sm"><span>${esc(c.i)} ${esc(c.n)}</span><span><b>${inr(v)}</b> <span class="lbl">${Math.round(v/T*100)}%</span></span></div><div class="bar"><i style="width:${v/T*100}%;background:${esc(c.c)}"></i></div></div>`}).join(''):'<div class="empty">Nothing spent this month yet.</div>';
+  /* list */
+  const L=[...S.exp.map(e=>({...e,k:'e'})),...S.inc.map(e=>({...e,k:'i'}))].sort((a,b)=>b.d.localeCompare(a.d)||b.ts-a.ts).slice(0,15);
+  const dt=d=>new Date(d+'T00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  $('#list').innerHTML=L.length?L.map(e=>{
+    if(e.k==='i'){const md=modeOf(e.p);return `<div class="row"><div class="dot" style="background:var(--bd)">${md[1]}</div><div class="b"><div class="t">${esc(e.n||'Income')} <span class="tag">${esc(e.p)}</span></div><div class="lbl sm">Income · ${dt(e.d)}</div></div><div class="amt down">+${inr(e.a)}</div><button class="x" data-idel="${e.id}" aria-label="Delete income">✕</button></div>`}
+    const c=cat(e.c);return `<div class="row"><div class="dot" style="background:${esc(c.c)}33">${esc(c.i)}</div><div class="b"><div class="t">${esc(e.m||e.n||c.n)} ${e.r?'<span class="tag">UPI</span>':''}</div><div class="lbl sm">${esc(c.n)} · ${dt(e.d)}</div></div><div class="amt">−${inr(e.a)}</div><button class="x" data-del="${e.id}" aria-label="Delete expense">✕</button></div>`}).join(''):'<div class="empty">No transactions yet. Add an expense or income, paste a UPI SMS, or load sample data from the Categories tab.</div>';
+  /* categories tab */
+  $('#clist').innerHTML=S.cats.map(c=>`<div class="row"><div class="dot" style="background:${esc(c.c)}33">${esc(c.i)}</div><div class="b">${esc(c.n)}</div><button class="x" data-cdel="${c.id}" aria-label="Delete ${esc(c.n)}">✕</button></div>`).join('');
+  const opts=S.cats.map(c=>`<option value="${c.id}">${esc(c.i)} ${esc(c.n)}</option>`).join('');
+  const keep=$('#mc').value;$('#mc').innerHTML=opts;if(keep)$('#mc').value=keep;
+  if($('#pc')){const k=$('#pc').value;$('#pc').innerHTML=opts;$('#pc').value=k}
+}
+document.addEventListener('click',e=>{
+  const d=e.target.closest('[data-del]');if(d&&confirm('Delete this expense?')){S.exp=S.exp.filter(x=>x.id!==d.dataset.del);save();render()}
+  const di=e.target.closest('[data-idel]');if(di&&confirm('Delete this income entry?')){S.inc=S.inc.filter(x=>x.id!==di.dataset.idel);save();render()}
+  const c=e.target.closest('[data-cdel]');if(c){const cc=cat(c.dataset.cdel);if(cc.n==='Others')return toast('"Others" is needed as a fallback.');const n=S.exp.filter(x=>x.c===cc.id).length;if(confirm(n?`${n} expenses will move to Others. Delete "${cc.n}"?`:`Delete "${cc.n}"?`)){const o=catByName('Others').id;S.exp.forEach(x=>{if(x.c===cc.id)x.c=o});S.cats=S.cats.filter(x=>x.id!==cc.id);save();render()}}
+});
+
+/* add */
+function addExp(x){if(x.r&&S.exp.some(e=>e.r===x.r))return toast('Already imported: this reference number exists.'),false;S.exp.push({id:uid(),ts:Date.now(),...x});save();render();return true}
+$('#mdt').value=today();
+$('#msave').onclick=()=>{const a=parseFloat($('#ma').value);if(!(a>0))return toast('Enter an amount above 0.');
+  if(addExp({a,c:$('#mc').value,n:$('#md').value.trim(),d:$('#mdt').value||today()})){$('#ma').value='';$('#md').value='';toast('Expense saved')}};
+
+function addInc(x){S.inc.push({id:uid(),ts:Date.now(),...x});save();render()}
+$('#ip').innerHTML=MODES.map(m=>`<option>${m[0]}</option>`).join('');$('#idt').value=today();
+$('#isave').onclick=()=>{const a=parseFloat($('#ia').value);if(!(a>0))return toast('Enter an amount above 0.');
+  addInc({a,p:$('#ip').value,n:$('#in').value.trim(),d:$('#idt').value||today()});$('#ia').value='';$('#in').value='';toast('Income saved')};
+
+/* SMS parser: Indian bank / UPI formats */
+const MON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function parseSMS(t){
+  const s=t.replace(/\s+/g,' ').trim();let m;
+  const a=(m=s.match(/(?:Rs\.?|INR|₹)\s?([\d,]+(?:\.\d{1,2})?)/i))?parseFloat(m[1].replace(/,/g,'')):null;
+  const credit=/credited|received/i.test(s)&&!/debited|sent|paid|spent/i.test(s);
+  const r=(m=s.match(/(?:ref|rrn|utr|txn|upi)[^\d]{0,25}(\d{9,14})/i))?m[1]:((m=s.match(/\b(\d{12})\b/))?m[1]:null);
+  let mer=(m=s.match(/VPA\s+([\w.\-]+@[\w]+)/i))?m[1]:((m=s.match(/(?:\bto|\bat|trf to)\s+([A-Za-z][\w &.'\-]{1,30}?)(?=\s+(?:Ref|on|UPI|via|Avl|Bal|Not|If|-)|[.(]|$)/i))?m[1]:'');
+  let d=today();
+  if(m=s.match(/(\d{1,2})[-\/ ]([A-Za-z]{3})[A-Za-z]*[-\/ ,]*(\d{2,4})/)){const y=+m[3]<100?2000+ +m[3]:+m[3],mo=MON[m[2].toLowerCase()];if(mo)d=`${y}-${String(mo).padStart(2,'0')}-${m[1].padStart(2,'0')}`}
+  else if(m=s.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})/)){const y=+m[3]<100?2000+ +m[3]:+m[3];d=`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`}
+  let c=null;for(const[k,re]of Object.entries(KW))if(re.test(mer+' '+s)){c=catByName(k).id;break}
+  return{mode:/NEFT|IMPS|RTGS/i.test(s)?'Bank transfer':'UPI',a,r,m:mer.replace(/@.*/,'').trim()||'',raw:mer,d,c:c||catByName('Others').id,credit}
+}
+$('#parse').onclick=()=>{
+  const p=parseSMS($('#sms').value);$('#sms').value='';
+  if(!p.a)return $('#pv').innerHTML='<p class="up sm">Could not find an amount. Check the SMS includes "Rs." or "INR", then try again.</p>';
+  $('#pv').innerHTML=`<div class="pv"><label>Check and edit before saving</label>${p.credit?'<p class="up sm">This looks like money received. Save it as income, or as an expense if that is wrong.</p>':''}
+  <div class="two"><div><label for="pa">Amount</label><input id="pa" type="number" step="0.01" value="${p.a}"></div><div><label for="pd">Date</label><input id="pd" type="date" value="${p.d}"></div></div>
+  <label for="pm">Merchant</label><input id="pm" value="${esc(p.m)}"><label for="pc">Category</label><select id="pc"></select>
+  <p class="lbl sm">Ref: ${p.r?esc(p.r):'not found (duplicates cannot be detected)'}</p>
+  ${p.credit?'<button class="btn" id="pinc">Save as income</button> ':''}<button class="btn${p.credit?' g':''}" id="psave">Save as expense</button> <button class="btn g" id="pcancel">Discard</button></div>`;
+  render();$('#pc').value=p.c;
+  if(p.credit)$('#pinc').onclick=()=>{const a=parseFloat($('#pa').value);if(!(a>0))return toast('Enter a valid amount.');if(p.r&&S.inc.some(e=>e.r===p.r))return toast('Already imported: this reference number exists.');addInc({a,p:p.mode,n:$('#pm').value.trim(),d:$('#pd').value||today(),r:p.r});$('#pv').innerHTML='';toast('Income saved from SMS')};
+  $('#pcancel').onclick=()=>$('#pv').innerHTML='';
+  $('#psave').onclick=()=>{const a=parseFloat($('#pa').value);if(!(a>0))return toast('Enter a valid amount.');if(addExp({a,c:$('#pc').value,m:$('#pm').value.trim(),d:$('#pd').value||today(),r:p.r})){$('#pv').innerHTML='';toast('Imported from SMS')}};
+};
+
+/* categories + data */
+$('#cadd').onclick=()=>{const n=$('#cn').value.trim();if(!n)return toast('Give the category a name.');if(S.cats.some(c=>c.n.toLowerCase()===n.toLowerCase()))return toast('That category already exists.');
+  S.cats.push({id:uid(),i:$('#ci').value||'🏷️',n,c:$('#cco').value});$('#cn').value='';save();render();toast('Category added')};
+$('#csv').onclick=()=>{const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const t='Type,Date,Amount,Category / Mode,Merchant / Source,Description,UPI Ref\n'+[...S.exp.map(e=>['Expense',e.d,e.a,cat(e.c).n,e.m,e.n,e.r]),...S.inc.map(e=>['Income',e.d,e.a,e.p,e.n,'',e.r])].map(r=>r.map(q).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='expenses.csv';a.click()};
+$('#wipe').onclick=()=>{if(confirm('Delete every expense and income entry? This cannot be undone.')){S.exp=[];S.inc=[];save();render()}};
+$('#demo').onclick=()=>{const P=[['Food',80,450,'Swiggy'],['Food',40,200,'Chai stall'],['Transport',30,250,'Uber'],['Shopping',300,2500,'Amazon'],['Subscriptions',199,199,'Netflix'],['Health',100,800,'Apollo Pharmacy'],['Entertainment',200,600,'BookMyShow'],['Rent & bills',500,1800,'Electricity']];
+  for(let i=0;i<45;i++)for(let j=0;j<2;j++){if(Math.random()<.45)continue;const p=P[Math.floor(Math.random()*P.length)],d=new Date();d.setDate(d.getDate()-i);
+    S.exp.push({id:uid(),ts:Date.now()+i*10+j,a:Math.round(p[1]+Math.random()*(p[2]-p[1])),c:catByName(p[0]).id,m:p[3],d:iso(d)})}
+  [0,1,2].forEach(m=>{const d=new Date();d.setMonth(d.getMonth()-m,1);S.inc.push({id:uid(),ts:Date.now()+m,a:45000,p:'Bank transfer',n:'Salary',d:iso(d)})});
+  [['UPI',3500,'Freelance work'],['Cash',1200,'Cash gift'],['UPI',800,'Friend paid back'],['Cheque',5000,'Client cheque'],['Card / wallet',650,'Cashback']].forEach((x,i)=>{const d=new Date();d.setDate(d.getDate()-i*6-1);S.inc.push({id:uid(),ts:Date.now()+50+i,a:x[1],p:x[0],n:x[2],d:iso(d)})});
+  save();render();toast('Sample data loaded')};
+theme();render();
+</script>
+</body>
+</html>
