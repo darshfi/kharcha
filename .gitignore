@@ -55,6 +55,3 @@ Thumbs.db
 .ripgreprc
 .mcp.json
 .claude/
-
-# Claude session dirs
-node_modules/
