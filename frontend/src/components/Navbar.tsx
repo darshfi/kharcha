@@ -31,9 +31,9 @@ const Navbar: React.FC = () => {
       <div className="shell flex items-center gap-3 py-3">
         <NavLink to="/" className="mr-auto flex items-center gap-2" onClick={() => setOpen(false)}>
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-semibold text-on-accent">
-            L
+            K
           </span>
-          <span className="text-base font-semibold tracking-tight text-fg">Ledger</span>
+          <span className="text-base font-semibold tracking-tight text-fg">Kharcha</span>
         </NavLink>
 
         {/* Desktop links */}
