@@ -1,5 +1,4 @@
 import { format, parseISO } from 'date-fns';
-import { INR } from '../types/currency';
 
 // Format currency
 export const formatCurrency = (amount: number): string => {

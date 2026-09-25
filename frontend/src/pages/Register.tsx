@@ -1,79 +1,119 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Register: React.FC = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setError(null);
+    setNotice(null);
+    setBusy(true);
     try {
       await register(email, password, fullName);
-      toast.success('Registration successful! Please check your email to verify your account.');
-      navigate('/login');
-    } catch (error: any) {
-      toast.error(error.message || 'Registration failed');
+      navigate('/');
+    } catch (err: any) {
+      setError(err?.message ?? 'Could not create your account');
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="w-full max-w-md space-y-6">
-        <h2 className="text-2xl font-bold text-center text-gray-800">Create Account</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="screen flex min-h-screen flex-col">
+      <div className="flex justify-end p-4">
+        <ThemeToggle />
+      </div>
+
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 pb-20">
+        <div className="mb-8">
+          <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-lg font-semibold text-on-accent">
+            L
+          </div>
+          <h1 className="title">Create an account</h1>
+          <p className="label mt-2">Start tracking in under a minute</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="stack gap-4">
+          {error && (
+            <div className="rounded-xl border border-negative/30 bg-negative-soft px-4 py-3 text-[13px] text-negative">
+              {error}
+            </div>
+          )}
+          {notice && (
+            <div className="rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 text-[13px] text-accent">
+              {notice}
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <label className="field-label" htmlFor="name">
+              Name
+            </label>
             <input
+              id="name"
               type="text"
+              autoComplete="name"
+              required
+              className="field"
+              placeholder="Your name"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={e => setFullName(e.target.value)}
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="field-label" htmlFor="email">
+              Email
+            </label>
             <input
+              id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="field"
+              placeholder="you@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="field-label" htmlFor="password">
+              Password
+            </label>
             <input
+              id="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
               required
               minLength={8}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="field"
+              placeholder="At least 8 characters"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
             />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Registering...' : 'Register'}
+
+          <button type="submit" disabled={busy} className="btn-primary mt-2 w-full">
+            {busy ? 'Creating…' : 'Create account'}
           </button>
         </form>
-        <p className="text-center text-sm text-gray-600">
+
+        <p className="mt-8 text-center text-[13px] text-muted">
           Already have an account?{' '}
-          <span className="text-blue-600 hover:underline cursor-pointer" onClick={() => navigate('/login')}>
+          <Link to="/login" className="font-medium text-accent transition-colors hover:text-accent-hover">
             Sign in
-          </span>
+          </Link>
         </p>
       </div>
     </div>

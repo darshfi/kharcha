@@ -1,13 +1,8 @@
 import { Router } from 'express';
 import { Request, Response } from 'express';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../services/supabase';
 
 const router = Router();
-
-// Initialize Supabase client (in a real app, this would be done once and shared)
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Register endpoint
 router.post('/register', async (req: Request, res: Response) => {

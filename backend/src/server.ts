@@ -11,6 +11,12 @@ import budgetRoutes from './routes/budgets';
 // Load environment variables
 dotenv.config();
 
+// DEBUG: Verify environment variables are loaded
+console.log('🔧 Environment Variables Loaded:');
+console.log('  SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ SET' : '❌ MISSING');
+console.log('  SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? '✅ SET' : '❌ MISSING');
+console.log('  SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? '✅ SET' : '❌ MISSING');
+
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3001;

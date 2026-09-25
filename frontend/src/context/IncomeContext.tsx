@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from './AuthContext';
+import { toDbIncome, fromDbIncome } from '../lib/mappers';
 
 interface Income {
   id: string;
@@ -17,7 +18,7 @@ interface IncomeContextType {
   incomes: Income[];
   loading: boolean;
   fetchIncomes: () => Promise<void>;
-  addIncome: (income: Omit<Income, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addIncome: (income: Partial<Income> & Pick<Income, 'amount' | 'source' | 'paymentMode' | 'date'>) => Promise<void>;
   updateIncome: (id: string, income: Partial<Income>) => Promise<void>;
   deleteIncome: (id: string) => Promise<void>;
 }
@@ -40,7 +41,7 @@ export const IncomeProvider = ({ children }: { children: React.ReactNode }) => {
         .order('date', { ascending: false });
 
       if (error) throw error;
-      setIncomes(data);
+      setIncomes((data ?? []).map(fromDbIncome));
     } catch (error) {
       console.error('Error fetching incomes:', error);
     } finally {
@@ -48,17 +49,17 @@ export const IncomeProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const addIncome = async (income: Omit<Income, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) return;
+  const addIncome = async (income: Partial<Income> & Pick<Income, 'amount' | 'source' | 'paymentMode' | 'date'>) => {
+    if (!user) throw new Error('Not authenticated');
     try {
       const { data, error } = await supabase
         .from('incomes')
-        .insert([{ ...income, user_id: user.id }])
+        .insert([toDbIncome(income, user.id)])
         .select()
         .single();
 
       if (error) throw error;
-      setIncomes(prev => [data, ...prev]);
+      setIncomes(prev => [fromDbIncome(data), ...prev]);
     } catch (error) {
       console.error('Error adding income:', error);
       throw error;
@@ -66,18 +67,25 @@ export const IncomeProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const updateIncome = async (id: string, income: Partial<Income>) => {
-    if (!user) return;
+    if (!user) throw new Error('Not authenticated');
     try {
+      const { id: _id, createdAt: _c, updatedAt: _u, ...changes } = income;
+      const payload: Record<string, unknown> = { ...toDbIncome(changes, user.id) };
+      delete payload.id;
+      delete payload.user_id;
+      delete payload.created_at;
+      delete payload.updated_at;
+
       const { data, error } = await supabase
         .from('incomes')
-        .update({ ...income, updatedAt: new Date().toISOString() })
+        .update(payload)
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) throw error;
-      setIncomes(prev => prev.map(inc => inc.id === id ? data : inc));
+      setIncomes(prev => prev.map(inc => (inc.id === id ? fromDbIncome(data) : inc)));
     } catch (error) {
       console.error('Error updating income:', error);
       throw error;
@@ -106,12 +114,9 @@ export const IncomeProvider = ({ children }: { children: React.ReactNode }) => {
       fetchIncomes();
     } else {
       setIncomes([]);
+      setLoading(false);
     }
   }, [user]);
-
-  if (loading) {
-    return <div>Loading incomes...</div>;
-  }
 
   return (
     <IncomeContext.Provider value={{ incomes, loading, fetchIncomes, addIncome, updateIncome, deleteIncome }}>

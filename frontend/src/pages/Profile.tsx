@@ -1,186 +1,125 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { useAuth } from '../context/AuthContext';
+import { useTheme, type Theme } from '../context/ThemeContext';
+import { useExpenses } from '../context/ExpenseContext';
+import { useIncomes } from '../context/IncomeContext';
+import { useCategories } from '../context/CategoryContext';
+import { formatCurrency } from '../utils/formatters';
+import ThemeToggle from '../components/ThemeToggle';
 
 const Profile: React.FC = () => {
   const { user, logout } = useAuth();
+  const { theme, setTheme, isOverridden, useSystemTheme } = useTheme();
+  const { expenses } = useExpenses();
+  const { incomes } = useIncomes();
+  const { categories } = useCategories();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState(user?.email || '');
-  const [fullName, setFullName] = useState(user?.full_name || '');
-  const [currency, setCurrency] = useState(user?.currency || 'INR');
-  const [dateFormat, setDateFormat] = useState(user?.date_format || 'DD/MM/YYYY');
-  const [theme, setTheme] = useState(user?.theme || 'light');
-  const [loading, setLoading] = useState(false);
-
-  const handleUpdateProfile = async () => {
-    setLoading(true);
-    try {
-      // In a real app, we would update the user in the database via Supabase
-      // For now, we'll just update the local state and show a success message
-      // You would typically use supabase.from('users').update(...) here
-      toast.success('Profile updated successfully!');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
-    } finally {
-      setLoading(false);
-    }
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
-  const handleChangePassword = () => {
-    // Navigate to change password page (to be implemented)
-    toast.info('Change password feature coming soon!');
-  };
-
-  const handleExportData = () => {
-    // Implement data export (to be implemented)
-    toast.info('Data export feature coming soon!');
-  };
-
-  const handleDeleteAccount = async () => {
-    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      setLoading(true);
-      try {
-        // In a real app, we would delete the user account via Supabase
-        // For now, we'll just log out and show a success message
-        await logout();
-        toast.success('Account deleted successfully!');
-        navigate('/login');
-      } catch (error: any) {
-        toast.error(error.message || 'Failed to delete account');
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+  const totalSpent = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalIncome = incomes.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const name = user?.user_metadata?.full_name || '';
+  const initial = (name || user?.email || '?').charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-            Profile Settings
-            <button
-              onClick={() => navigate('/')}
-              className="ml-auto text-gray-500 hover:text-gray-700"
-            >
-              ← Back to Dashboard
-            </button>
-          </h1>
+    <div className="stack">
+      <header className="pt-2">
+        <h1 className="title">Profile</h1>
+      </header>
+
+      <section className="card">
+        <div className="row">
+          <span className="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-accent-soft text-lg font-semibold text-accent">
+            {initial}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-base text-fg">{name || 'Your account'}</span>
+            <span className="label mt-1 block truncate">{user?.email}</span>
+          </span>
+        </div>
+      </section>
+
+      {/* ---------- Appearance ---------- */}
+      <section className="card">
+        <p className="label mb-4">Appearance</p>
+
+        <div className="row">
+          <span>
+            <span className="block text-base text-fg">Dark mode</span>
+            <span className="label mt-1 block">
+              {isOverridden ? 'Custom' : 'Following your system'}
+            </span>
+          </span>
+          <ThemeToggle />
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-medium text-gray-800 mb-4">Account Information</h2>
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+        <div className="divider my-4" />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                readOnly
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="INR">₹ Indian Rupee (INR)</option>
-                  <option value="USD">$ US Dollar (USD)</option>
-                  <option value="EUR">€ Euro (EUR)</option>
-                  <option value="GBP">£ British Pound (GBP)</option>
-                  <option value="JPY">¥ Japanese Yen (JPY)</option>
-                  <option value="CAD">C$ Canadian Dollar (CAD)</option>
-                  <option value="AUD">A$ Australian Dollar (AUD)</option>
-                  <option value="SGD">S$ Singapore Dollar (SGD)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date Format</label>
-                <select
-                  value={dateFormat}
-                  onChange={(e) => setDateFormat(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="darkMode"
-                  checked={theme === 'dark'}
-                  onChange={(e) => setTheme(e.target.checked ? 'dark' : 'light')}
-                  className="form-checkbox h-4 w-4 text-blue-600"
-                />
-              </div>
-              <label htmlFor="darkMode" className="ml-2 text-sm font-medium text-gray-700">
-                Dark Mode
-              </label>
-            </div>
-
+        <div className="segment">
+          {(['light', 'dark'] as Theme[]).map(t => (
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+              key={t}
+              onClick={() => setTheme(t)}
+              className={`segment-item ${theme === t ? 'segment-item-active' : ''}`}
             >
-              {loading ? 'Saving Changes...' : 'Update Profile'}
+              {t === 'light' ? '☀ Light' : '☾ Dark'}
             </button>
-          </form>
+          ))}
         </div>
 
-        <div className="mt-6">
-          <h2 className="text-lg font-medium text-gray-800 mb-4">Security</h2>
-          <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
-            <button
-              onClick={handleChangePassword}
-              className="w-full text-left bg-gray-50 hover:bg-gray-100 p-4 rounded-md font-medium text-gray-800 flex items-center justify-between"
-            >
-              <span>Change Password</span>
-              <span className="text-sm text-gray-500">Update your account password</span>
-            </button>
+        {isOverridden && (
+          <button onClick={useSystemTheme} className="label mt-3 text-accent hover:text-accent-hover">
+            Use system setting
+          </button>
+        )}
+      </section>
 
-            <button
-              onClick={handleExportData}
-              className="w-full text-left bg-gray-50 hover:bg-gray-100 p-4 rounded-md font-medium text-gray-800 flex items-center justify-between"
+      {/* ---------- Stats ---------- */}
+      <section className="card">
+        <p className="label mb-4">All time</p>
+        <div className="stack gap-3">
+          <div className="row">
+            <span className="text-base text-muted">Expenses</span>
+            <span className="amount-md">{expenses.length}</span>
+          </div>
+          <div className="row">
+            <span className="text-base text-muted">Income entries</span>
+            <span className="amount-md">{incomes.length}</span>
+          </div>
+          <div className="row">
+            <span className="text-base text-muted">Categories</span>
+            <span className="amount-md">{categories.filter(c => !c.isArchived).length}</span>
+          </div>
+          <div className="divider my-1" />
+          <div className="row">
+            <span className="text-base text-muted">Total spent</span>
+            <span className="amount-md text-negative">{formatCurrency(totalSpent)}</span>
+          </div>
+          <div className="row">
+            <span className="text-base text-muted">Total earned</span>
+            <span className="amount-md text-positive">{formatCurrency(totalIncome)}</span>
+          </div>
+          <div className="row">
+            <span className="text-base text-fg">Net</span>
+            <span
+              className={`amount-lg ${totalIncome - totalSpent >= 0 ? 'text-positive' : 'text-negative'}`}
             >
-              <span>Export Data</span>
-              <span className="text-sm text-gray-500">Download your data as CSV or JSON</span>
-            </button>
-
-            <button
-              onClick={handleDeleteAccount}
-              className="w-full text-left bg-red-50 hover:bg-red-100 p-4 rounded-md font-medium text-red-800 flex items-center justify-between"
-            >
-              <span>Delete Account</span>
-              <span className="text-sm text-gray-500">Permanently delete your account</span>
-            </button>
+              {formatCurrency(totalIncome - totalSpent)}
+            </span>
           </div>
         </div>
-      </div>
+      </section>
+
+      <button onClick={handleLogout} className="btn-danger w-full">
+        Sign out
+      </button>
+
+      <p className="label pb-4 text-center">Ledger · v1.0.0</p>
     </div>
   );
 };

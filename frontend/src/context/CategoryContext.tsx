@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from './AuthContext';
+import { toDbCategory, fromDbCategory } from '../lib/mappers';
 
 interface Category {
   id: string;
@@ -17,7 +18,7 @@ interface CategoryContextType {
   categories: Category[];
   loading: boolean;
   fetchCategories: () => Promise<void>;
-  addCategory: (category: Omit<Category, 'id' | 'createdAt'>) => Promise<void>;
+  addCategory: (category: Partial<Category> & Pick<Category, 'name' | 'icon' | 'color'>) => Promise<void>;
   updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   archiveCategory: (id: string) => Promise<void>;
@@ -41,7 +42,7 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
         .order('order_index', { ascending: true });
 
       if (error) throw error;
-      setCategories(data);
+      setCategories((data ?? []).map(fromDbCategory));
     } catch (error) {
       console.error('Error fetching categories:', error);
     } finally {
@@ -49,17 +50,17 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
     }
   };
 
-  const addCategory = async (category: Omit<Category, 'id' | 'createdAt'>) => {
-    if (!user) return;
+  const addCategory = async (category: Partial<Category> & Pick<Category, 'name' | 'icon' | 'color'>) => {
+    if (!user) throw new Error('Not authenticated');
     try {
       const { data, error } = await supabase
         .from('expense_categories')
-        .insert([{ ...category, user_id: user.id }])
+        .insert([toDbCategory(category, user.id)])
         .select()
         .single();
 
       if (error) throw error;
-      setCategories(prev => [data, ...prev]);
+      setCategories(prev => [...prev, fromDbCategory(data)]);
     } catch (error) {
       console.error('Error adding category:', error);
       throw error;
@@ -67,18 +68,24 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
   };
 
   const updateCategory = async (id: string, category: Partial<Category>) => {
-    if (!user) return;
+    if (!user) throw new Error('Not authenticated');
     try {
+      const { id: _id, createdAt: _c, ...changes } = category;
+      const payload: Record<string, unknown> = { ...toDbCategory(changes, user.id) };
+      delete payload.id;
+      delete payload.user_id;
+      delete payload.created_at;
+
       const { data, error } = await supabase
         .from('expense_categories')
-        .update({ ...category, updatedAt: new Date().toISOString() })
+        .update(payload)
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) throw error;
-      setCategories(prev => prev.map(cat => cat.id === id ? data : cat));
+      setCategories(prev => prev.map(cat => (cat.id === id ? fromDbCategory(data) : cat)));
     } catch (error) {
       console.error('Error updating category:', error);
       throw error;
@@ -105,16 +112,17 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
   const archiveCategory = async (id: string) => {
     if (!user) return;
     try {
+      // Only is_archived exists — there is no updated_at column on this table.
       const { data, error } = await supabase
         .from('expense_categories')
-        .update({ is_archived: true, updatedAt: new Date().toISOString() })
+        .update({ is_archived: true })
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) throw error;
-      setCategories(prev => prev.map(cat => cat.id === id ? data : cat));
+      setCategories(prev => prev.map(cat => (cat.id === id ? fromDbCategory(data) : cat)));
     } catch (error) {
       console.error('Error archiving category:', error);
       throw error;
@@ -126,15 +134,14 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
       fetchCategories();
     } else {
       setCategories([]);
+      setLoading(false);
     }
   }, [user]);
 
-  if (loading) {
-    return <div>Loading categories...</div>;
-  }
-
   return (
-    <CategoryContext.Provider value={{ categories, loading, fetchCategories, addCategory, updateCategory, deleteCategory, archiveCategory }}>
+    <CategoryContext.Provider
+      value={{ categories, loading, fetchCategories, addCategory, updateCategory, deleteCategory, archiveCategory }}
+    >
       {children}
     </CategoryContext.Provider>
   );
