@@ -4,8 +4,8 @@ import { useIncomes } from '../context/IncomeContext';
 import { useCategories } from '../context/CategoryContext';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  LineChart, Line, XAxis, YAxis,
+  CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 
 const RANGES = [
@@ -13,6 +13,8 @@ const RANGES = [
   { key: '30', label: '30D', days: 30 },
   { key: '90', label: '90D', days: 90 },
 ] as const;
+
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const Analytics: React.FC = () => {
   const { expenses } = useExpenses();
@@ -36,20 +38,30 @@ const Analytics: React.FC = () => {
       return d >= cutoff && d <= now;
     });
 
-    // --- Daily series, gap-filled so the line has no false jumps ---
-    const byDay = new Map<string, number>();
+    // --- Daily series with income (positive) and expenses (negative) ---
+    const byDay = new Map<string, { expense: number; income: number }>();
     inRange.forEach(e => {
-      byDay.set(e.date, (byDay.get(e.date) ?? 0) + Number(e.amount || 0));
+      const day = byDay.get(e.date) || { expense: 0, income: 0 };
+      day.expense += Number(e.amount || 0);
+      byDay.set(e.date, day);
     });
-    const series: Array<{ label: string; full: string; amount: number }> = [];
+    incomeInRange.forEach(i => {
+      const day = byDay.get(i.date) || { expense: 0, income: 0 };
+      day.income += Number(i.amount || 0);
+      byDay.set(i.date, day);
+    });
+
+    const series: Array<{ label: string; full: string; expense: number; income: number }> = [];
     for (let i = 0; i < range; i++) {
       const d = new Date(cutoff);
       d.setDate(cutoff.getDate() + i);
       const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const day = byDay.get(iso) || { expense: 0, income: 0 };
       series.push({
         label: range <= 7 ? d.toLocaleDateString('en-US', { weekday: 'short' }) : `${d.getDate()}/${d.getMonth() + 1}`,
         full: formatDate(iso),
-        amount: byDay.get(iso) ?? 0,
+        expense: -day.expense, // negative for downward display
+        income: day.income,     // positive for upward display
       });
     }
 
@@ -66,25 +78,26 @@ const Analytics: React.FC = () => {
       .map(([name, v]) => ({ name, ...v }))
       .sort((a, b) => b.amount - a.amount);
 
-    // --- Top merchants ---
-    const byMerchant = new Map<string, number>();
+    // --- Weekday split, Monday first. Buckets come from `date`, which is
+    // always present, so all 7 render even when the data is thin. ---
+    const weekdayTotals = Array.from({ length: 7 }, () => ({ amount: 0, count: 0 }));
     inRange.forEach(e => {
-      const name = e.merchantName?.trim() || e.description?.trim() || 'Unlabelled';
-      byMerchant.set(name, (byMerchant.get(name) ?? 0) + Number(e.amount || 0));
+      // getDay() is 0=Sun; shift so index 0 is Monday.
+      const idx = (new Date(e.date + 'T00:00:00').getDay() + 6) % 7;
+      weekdayTotals[idx].amount += Number(e.amount || 0);
+      weekdayTotals[idx].count += 1;
     });
-    const topMerchants = [...byMerchant.entries()]
-      .map(([name, amount]) => ({ name, amount }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5);
+    const byWeekday = WEEKDAYS.map((label, i) => ({ label, ...weekdayTotals[i] }));
+    const maxWeekday = byWeekday.reduce((m, w) => Math.max(m, w.amount), 0);
 
     const totalSpent = inRange.reduce((s, e) => s + Number(e.amount || 0), 0);
     const totalIncome = incomeInRange.reduce((s, i) => s + Number(i.amount || 0), 0);
     const maxCategory = byCategory[0]?.amount ?? 0;
-    const activeDays = series.filter(s => s.amount > 0).length;
+    const activeDays = series.filter(s => s.expense < 0 || s.income > 0).length;
 
     return {
-      series, byCategory, topMerchants, totalSpent, totalIncome,
-      maxCategory, activeDays,
+      series, byCategory, byWeekday, totalSpent, totalIncome,
+      maxCategory, maxWeekday, activeDays,
       avgPerActiveDay: activeDays > 0 ? totalSpent / activeDays : 0,
       count: inRange.length,
     };
@@ -189,41 +202,36 @@ const Analytics: React.FC = () => {
         )}
       </section>
 
-      {/* Top merchants as a compact bar chart */}
-      {data.topMerchants.length > 0 && (
-        <section className="card">
-          <p className="label mb-4">Where it went</p>
-          <div className="h-[160px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={data.topMerchants}
-                layout="vertical"
-                margin={{ top: 0, right: 8, bottom: 0, left: 0 }}
-              >
-                <XAxis type="number" hide domain={[0, 'dataMax']} />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={86}
-                  tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  cursor={{ fill: 'var(--surface-raised)' }}
-                  formatter={(v: number) => [formatCurrency(v), 'Spent']}
-                />
-                <Bar dataKey="amount" radius={[0, 6, 6, 0]} barSize={14}>
-                  {data.topMerchants.map((_, i) => (
-                    <Cell key={i} fill="var(--accent)" fillOpacity={1 - i * 0.14} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+      {/* Weekday bars — hand-rolled like the category list above, so the amount
+          stays visible without a hover and nothing clips on a narrow screen. */}
+      <section className="card">
+        <p className="label mb-4">Spending by weekday</p>
+        {data.totalSpent === 0 ? (
+          <p className="py-6 text-center text-base text-muted">No spending in this period</p>
+        ) : (
+          <div className="stack gap-4">
+            {data.byWeekday.map(w => (
+              <div key={w.label}>
+                <div className="row mb-2">
+                  <span className="text-base text-fg">{w.label}</span>
+                  <span className="flex items-baseline gap-2">
+                    <span className="amount-md">{formatCurrency(w.amount)}</span>
+                    {/* A 30-day window holds 5 of some weekdays and 4 of others,
+                        so the count is what makes the totals comparable. */}
+                    <span className="text-[11px] text-dim">{w.count}×</span>
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-track">
+                  <div
+                    className="h-full rounded-full bg-accent transition-all duration-300"
+                    style={{ width: `${data.maxWeekday > 0 ? (w.amount / data.maxWeekday) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       <section className="row card-raised">
         <span>
