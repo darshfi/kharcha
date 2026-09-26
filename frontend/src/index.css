@@ -110,6 +110,10 @@
     @apply mx-auto w-full max-w-2xl px-5 py-6;
   }
 
+  .shell-wide {
+    @apply max-w-4xl;
+  }
+
   /* ---------- Surfaces ---------- */
 
   /* Flat: no shadow, a 1px border and a one-step surface lift. */

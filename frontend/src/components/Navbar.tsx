@@ -5,11 +5,14 @@ import ThemeToggle from './ThemeToggle';
 
 const LINKS = [
   { to: '/', label: 'Home', end: true },
-  { to: '/add-expense', label: 'Add', end: false },
+  { to: '/add-expense', label: 'Add expense', end: false },
+  { to: '/add-income', label: 'Add income', end: false },
   { to: '/analytics', label: 'Charts', end: false },
   { to: '/categories', label: 'Categories', end: false },
   { to: '/budgets', label: 'Budgets', end: false },
 ];
+
+const DRAWER_LINKS = [...LINKS, { to: '/profile', label: 'Profile', end: false }];
 
 const Navbar: React.FC = () => {
   const { logout } = useAuth();
@@ -28,7 +31,7 @@ const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
-      <div className="shell flex items-center gap-3 py-3">
+      <div className="shell shell-wide flex items-center gap-3 py-3">
         <NavLink to="/" className="mr-auto flex items-center gap-2" onClick={() => setOpen(false)}>
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-sm font-semibold text-on-accent">
             K
@@ -79,24 +82,22 @@ const Navbar: React.FC = () => {
       {/* Mobile drawer */}
       {open && (
         <div className="border-t border-line bg-surface sm:hidden">
-          <nav className="shell flex flex-col py-2">
-            {[...LINKS, { to: '/add-income', label: 'Add Income', end: false }, { to: '/profile', label: 'Profile', end: false }].map(
-              link => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  end={link.end}
-                  onClick={() => setOpen(false)}
-                  className={({ isActive }) =>
-                    `rounded-lg px-3 py-3 text-base transition-colors ${
-                      isActive ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-raised hover:text-fg'
-                    }`
-                  }
-                >
-                  {link.label}
-                </NavLink>
-              ),
-            )}
+          <nav className="shell shell-wide flex flex-col py-2">
+            {DRAWER_LINKS.map(link => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.end}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `rounded-lg px-3 py-3 text-base transition-colors ${
+                    isActive ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-raised hover:text-fg'
+                  }`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
             <button
               type="button"
               onClick={() => {
