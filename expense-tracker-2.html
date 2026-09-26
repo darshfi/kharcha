@@ -80,7 +80,7 @@ input[type=color]{padding:2px;height:42px}textarea{min-height:110px;resize:verti
 <div class="grid g2">
 <div class="card"><h2>Add manually</h2>
 <label for="ma">Amount (₹)</label><input id="ma" type="number" min="0" step="0.01" inputmode="decimal">
-<label for="mc">Category</label><select id="mc"></select>
+<div class="two"><div><label for="mc">Category</label><select id="mc"></select></div><div><label for="mp">Paid via</label><select id="mp"></select></div></div>
 <label for="md">Description</label><input id="md" maxlength="80" placeholder="e.g. Chai and samosa">
 <label for="mdt">Date</label><input id="mdt" type="date">
 <button class="btn" id="msave">Save expense</button></div>
@@ -167,7 +167,7 @@ function render(){
   const dt=d=>new Date(d+'T00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
   $('#list').innerHTML=L.length?L.map(e=>{
     if(e.k==='i'){const md=modeOf(e.p);return `<div class="row"><div class="dot" style="background:var(--bd)">${md[1]}</div><div class="b"><div class="t">${esc(e.n||'Income')} <span class="tag">${esc(e.p)}</span></div><div class="lbl sm">Income · ${dt(e.d)}</div></div><div class="amt down">+${inr(e.a)}</div><button class="x" data-idel="${e.id}" aria-label="Delete income">✕</button></div>`}
-    const c=cat(e.c);return `<div class="row"><div class="dot" style="background:${esc(c.c)}33">${esc(c.i)}</div><div class="b"><div class="t">${esc(e.m||e.n||c.n)} ${e.r?'<span class="tag">UPI</span>':''}</div><div class="lbl sm">${esc(c.n)} · ${dt(e.d)}</div></div><div class="amt">−${inr(e.a)}</div><button class="x" data-del="${e.id}" aria-label="Delete expense">✕</button></div>`}).join(''):'<div class="empty">No transactions yet. Add an expense or income, paste a UPI SMS, or load sample data from the Categories tab.</div>';
+    const c=cat(e.c);return `<div class="row"><div class="dot" style="background:${esc(c.c)}33">${esc(c.i)}</div><div class="b"><div class="t">${esc(e.m||e.n||c.n)} ${e.r?'<span class="tag">UPI</span>':''}${e.pm&&!e.r?'<span class="tag">'+esc(e.pm)+'</span>':''}</div><div class="lbl sm">${esc(c.n)} · ${dt(e.d)}</div></div><div class="amt">−${inr(e.a)}</div><button class="x" data-del="${e.id}" aria-label="Delete expense">✕</button></div>`}).join(''):'<div class="empty">No transactions yet. Add an expense or income, paste a UPI SMS, or load sample data from the Categories tab.</div>';
   /* categories tab */
   $('#clist').innerHTML=S.cats.map(c=>`<div class="row"><div class="dot" style="background:${esc(c.c)}33">${esc(c.i)}</div><div class="b">${esc(c.n)}</div><button class="x" data-cdel="${c.id}" aria-label="Delete ${esc(c.n)}">✕</button></div>`).join('');
   const opts=S.cats.map(c=>`<option value="${c.id}">${esc(c.i)} ${esc(c.n)}</option>`).join('');
@@ -182,9 +182,9 @@ document.addEventListener('click',e=>{
 
 /* add */
 function addExp(x){if(x.r&&S.exp.some(e=>e.r===x.r))return toast('Already imported: this reference number exists.'),false;S.exp.push({id:uid(),ts:Date.now(),...x});save();render();return true}
-$('#mdt').value=today();
+$('#mp').innerHTML=MODES.map(m=>`<option>${m[0]}</option>`).join('');$('#mdt').value=today();
 $('#msave').onclick=()=>{const a=parseFloat($('#ma').value);if(!(a>0))return toast('Enter an amount above 0.');
-  if(addExp({a,c:$('#mc').value,n:$('#md').value.trim(),d:$('#mdt').value||today()})){$('#ma').value='';$('#md').value='';toast('Expense saved')}};
+  if(addExp({a,c:$('#mc').value,pm:$('#mp').value,n:$('#md').value.trim(),d:$('#mdt').value||today()})){$('#ma').value='';$('#md').value='';toast('Expense saved')}};
 
 function addInc(x){S.inc.push({id:uid(),ts:Date.now(),...x});save();render()}
 $('#ip').innerHTML=MODES.map(m=>`<option>${m[0]}</option>`).join('');$('#idt').value=today();
@@ -223,7 +223,7 @@ $('#parse').onclick=()=>{
 $('#cadd').onclick=()=>{const n=$('#cn').value.trim();if(!n)return toast('Give the category a name.');if(S.cats.some(c=>c.n.toLowerCase()===n.toLowerCase()))return toast('That category already exists.');
   S.cats.push({id:uid(),i:$('#ci').value||'🏷️',n,c:$('#cco').value});$('#cn').value='';save();render();toast('Category added')};
 $('#csv').onclick=()=>{const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const t='Type,Date,Amount,Category / Mode,Merchant / Source,Description,UPI Ref\n'+[...S.exp.map(e=>['Expense',e.d,e.a,cat(e.c).n,e.m,e.n,e.r]),...S.inc.map(e=>['Income',e.d,e.a,e.p,e.n,'',e.r])].map(r=>r.map(q).join(',')).join('\n');
+  const t='Type,Date,Amount,Category / Mode,Merchant / Source,Description,Payment Mode,UPI Ref\n'+[...S.exp.map(e=>['Expense',e.d,e.a,cat(e.c).n,e.m,e.n,e.pm||'',e.r]),...S.inc.map(e=>['Income',e.d,e.a,e.p,e.n,'','',e.r])].map(r=>r.map(q).join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='expenses.csv';a.click()};
 $('#wipe').onclick=()=>{if(confirm('Delete every expense and income entry? This cannot be undone.')){S.exp=[];S.inc=[];save();render()}};
 $('#demo').onclick=()=>{const P=[['Food',80,450,'Swiggy'],['Food',40,200,'Chai stall'],['Transport',30,250,'Uber'],['Shopping',300,2500,'Amazon'],['Subscriptions',199,199,'Netflix'],['Health',100,800,'Apollo Pharmacy'],['Entertainment',200,600,'BookMyShow'],['Rent & bills',500,1800,'Electricity']];
