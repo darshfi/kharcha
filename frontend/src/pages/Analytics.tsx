@@ -21,17 +21,19 @@ const Analytics: React.FC = () => {
   const [range, setRange] = useState<7 | 30 | 90>(30);
 
   const data = useMemo(() => {
-    const cutoff = new Date();
-    cutoff.setHours(0, 0, 0, 0);
-    cutoff.setDate(cutoff.getDate() - (range - 1));
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const cutoff = new Date(now);
+    cutoff.setDate(cutoff.getDate() - range + 1);
 
     const inRange = expenses.filter(e => {
-      const d = new Date(e.date);
-      return d >= cutoff && d <= new Date();
+      const d = new Date(e.date + 'T00:00:00');
+      return d >= cutoff && d <= now;
     });
     const incomeInRange = incomes.filter(i => {
-      const d = new Date(i.date);
-      return d >= cutoff && d <= new Date();
+      const d = new Date(i.date + 'T00:00:00');
+      return d >= cutoff && d <= now;
     });
 
     // --- Daily series, gap-filled so the line has no false jumps ---
@@ -40,9 +42,9 @@ const Analytics: React.FC = () => {
       byDay.set(e.date, (byDay.get(e.date) ?? 0) + Number(e.amount || 0));
     });
     const series: Array<{ label: string; full: string; amount: number }> = [];
-    for (let i = range - 1; i >= 0; i--) {
-      const d = new Date(cutoff.getTime() + 0);
-      d.setDate(cutoff.getDate() - i);
+    for (let i = 0; i < range; i++) {
+      const d = new Date(cutoff);
+      d.setDate(cutoff.getDate() + i);
       const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       series.push({
         label: range <= 7 ? d.toLocaleDateString('en-US', { weekday: 'short' }) : `${d.getDate()}/${d.getMonth() + 1}`,
