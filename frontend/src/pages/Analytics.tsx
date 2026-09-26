@@ -4,7 +4,7 @@ import { useIncomes } from '../context/IncomeContext';
 import { useCategories } from '../context/CategoryContext';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import {
-  LineChart, Line, XAxis, YAxis,
+  ComposedChart, Area, XAxis, YAxis, ReferenceLine,
   CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 
@@ -111,6 +111,12 @@ const Analytics: React.FC = () => {
     color: 'var(--text-primary)',
   };
 
+  // Recharts scales the domain to whichever side is larger, which would pin the
+  // zero line to an edge and destroy the point of a diverging chart. Force it
+  // symmetric so zero always sits in the middle.
+  const peak = data.series.reduce((m, s) => Math.max(m, Math.abs(s.expense), s.income), 0);
+  const yDomain: [number, number] = peak > 0 ? [peak * 1.15, -peak * 1.15] : [1, -1];
+
   return (
     <div className="stack">
       <header className="pt-2">
@@ -138,13 +144,27 @@ const Analytics: React.FC = () => {
         </p>
       </section>
 
-      {/* Spending over time */}
+      {/* Income vs expense — diverging around a centred zero line */}
       <section className="card">
-        <p className="label mb-4">Spending over time</p>
+        <div className="row mb-4">
+          <p className="label">Income vs expense</p>
+          {/* Hand-rolled keys rather than a Recharts <Legend>, matching the
+              card headers on the dashboard. */}
+          <span className="flex items-center gap-3">
+            <span className="label flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-positive" />
+              Income
+            </span>
+            <span className="label flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-negative" />
+              Spent
+            </span>
+          </span>
+        </div>
         <div className="h-[180px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data.series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-              {/* Faint baseline only — no horizontal gridlines competing with the line. */}
+            <ComposedChart data={data.series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+              {/* Faint baseline only — no horizontal gridlines competing with the areas. */}
               <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="0" />
               <XAxis
                 dataKey="label"
@@ -154,22 +174,38 @@ const Analytics: React.FC = () => {
                 interval="preserveStartEnd"
                 minTickGap={24}
               />
-              <YAxis hide domain={[0, 'dataMax']} />
+              <YAxis hide domain={yDomain} />
+              <ReferenceLine y={0} stroke="var(--border)" />
               <Tooltip
                 contentStyle={tooltipStyle}
                 cursor={{ stroke: 'var(--border)' }}
                 labelFormatter={(_, payload) => payload?.[0]?.payload?.full ?? ''}
-                formatter={(v: number) => [formatCurrency(v), 'Spent']}
+                formatter={(value, name) => [
+                  formatCurrency(Math.abs(Number(value))),
+                  name === 'income' ? 'Income' : 'Spent',
+                ]}
               />
-              <Line
+              <Area
                 type="monotone"
-                dataKey="amount"
-                stroke="var(--accent)"
+                dataKey="expense"
+                name="expense"
+                stroke="var(--negative)"
                 strokeWidth={2}
+                fill="var(--negative-soft)"
                 dot={false}
-                activeDot={{ r: 4, fill: 'var(--accent)', stroke: 'var(--surface)', strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: 'var(--negative)', stroke: 'var(--surface)', strokeWidth: 2 }}
               />
-            </LineChart>
+              <Area
+                type="monotone"
+                dataKey="income"
+                name="income"
+                stroke="var(--positive)"
+                strokeWidth={2}
+                fill="var(--positive-soft)"
+                dot={false}
+                activeDot={{ r: 4, fill: 'var(--positive)', stroke: 'var(--surface)', strokeWidth: 2 }}
+              />
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       </section>
