@@ -32,28 +32,17 @@ async function loadCategories(userId: string): Promise<Category[]> {
 
   if (error) return DEFAULT_CATEGORIES;
 
-  // Map database categories to local format
   const dbCategories: Category[] = (data || []).map((row: any) => ({
     id: row.id,
     name: row.name,
-    emoji: row.icon || '📦',
+    symbol: row.icon || 'F',
     color: row.color || '#6b7280',
   }));
 
-  // If no categories found, return defaults
   if (dbCategories.length === 0) return DEFAULT_CATEGORIES;
 
   return dbCategories;
 }
-
-const AuthContext = createContext<AuthContextValue>({
-  user: null,
-  session: null,
-  loading: true,
-  signUp: async () => ({ error: null }),
-  signIn: async () => ({ error: null }),
-  signOut: async () => {},
-});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

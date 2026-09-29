@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 import { useStore } from '../store/useStore';
 import TransactionRow from '../components/TransactionRow';
+import { Transaction } from '../types/transaction';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -17,7 +18,7 @@ export default function HomeScreen() {
   const totalSpent = monthTxns.reduce((s, t) => s + t.amount, 0);
   const totalIncome = monthIncome.reduce((s, t) => s + t.amount, 0);
   const dailyAvg = totalSpent / now.getDate();
-  const biggest = monthTxns.reduce((m, t) => (!m || t.amount > m.amount ? t : m), null);
+  const biggest = monthTxns.reduce((m: Transaction | null, t: Transaction) => (!m || t.amount > m.amount ? t : m), null as Transaction | null);
 
   const recent = [...transactions]
     .sort((a, b) => b.date.localeCompare(a.date))

@@ -8,7 +8,7 @@ export default function CategoriesScreen() {
   const { theme } = useTheme();
   const { categories, addCategory, deleteCategory, clearAll } = useStore();
   const [name, setName] = useState('');
-  const [emoji, setEmoji] = useState('🏷️');
+  const [symbol, setSymbol] = useState('F');
   const [color, setColor] = useState('#0F766E');
 
   const handleAdd = () => {
@@ -16,7 +16,7 @@ export default function CategoriesScreen() {
     if (categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) return;
     addCategory({
       id: `cat-${Date.now()}`,
-      emoji: emoji || '🏷️',
+      symbol: symbol || 'F',
       name: name.trim(),
       color,
     });
@@ -50,18 +50,18 @@ export default function CategoriesScreen() {
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>New category</Text>
-          <View style={styles.twoCol}>
-            <View style={styles.col}>
-              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Emoji</Text>
-              <TextInput
-                style={[styles.input, { color: theme.textPrimary, backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
-                value={emoji}
-                onChangeText={setEmoji}
-                maxLength={4}
-              />
-            </View>
-            <View style={styles.col}>
-              <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Colour</Text>
+<View style={styles.twoCol}>
+              <View style={styles.col}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Symbol</Text>
+                <TextInput
+                  style={[styles.input, { color: theme.textPrimary, backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+                  value={symbol}
+                  onChangeText={setSymbol}
+                  maxLength={1}
+                />
+              </View>
+              <View style={styles.col}>
+                <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Colour</Text>
               <TextInput
                 style={[styles.input, { color: theme.textPrimary, backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
                 value={color}

@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, Circle, Line, Polyline } from 'react-native-svg';
+import Svg, { Path, Line, Polyline, Circle, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeProvider';
 import { useStore } from '../store/useStore';
 
-export default function InsightsScreen() {
+function InsightsScreen() {
   const { theme } = useTheme();
   const { transactions, categories } = useStore();
 
@@ -46,6 +46,20 @@ export default function InsightsScreen() {
     return { key, label, value };
   });
   const maxDay = Math.max(1, ...days.map((d) => d.value));
+
+  const chartDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const key = d.toISOString().split('T')[0];
+    const expenseValue = transactions
+      .filter((t) => t.date === key && t.type === 'expense')
+      .reduce((s, t) => s + t.amount, 0);
+    const incomeValue = transactions
+      .filter((t) => t.date === key && t.type === 'income')
+      .reduce((s, t) => s + t.amount, 0);
+    return { key, expense: expenseValue, income: incomeValue };
+  });
+  const maxValue = Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)));
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
@@ -126,7 +140,6 @@ export default function InsightsScreen() {
           )}
         </View>
 
-        {/* Expense vs Income Line Chart */}
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>Expense vs Income (7 days)</Text>
           {(() => {
@@ -134,15 +147,14 @@ export default function InsightsScreen() {
               const d = new Date();
               d.setDate(d.getDate() - (6 - i));
               const key = d.toISOString().split('T')[0];
-              const label = d.toLocaleDateString('en-IN', { weekday: 'short' }).slice(0, 2);
               const expenseValue = transactions
                 .filter((t) => t.date === key && t.type === 'expense')
                 .reduce((s, t) => s + t.amount, 0);
               const incomeValue = transactions
                 .filter((t) => t.date === key && t.type === 'income')
                 .reduce((s, t) => s + t.amount, 0);
-              return { key, label, expense: expenseValue, income: incomeValue };
-            });
+            return { key, expense: expenseValue, income: incomeValue };
+          });
             const maxValue = Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)));
             const width = 320;
             const height = 120;
@@ -152,76 +164,67 @@ export default function InsightsScreen() {
 
             return (
               <View style={styles.lineChartContainer}>
-                <Svg width={width} height={height}>
-                  {/* Grid lines */}
+                <Svg width={320} height={120}>
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Line
                       key={`grid-${i}`}
-                      x1={padding}
-                      y1={padding + (chartHeight / 4) * i}
-                      x2={width - padding}
-                      y2={padding + (chartHeight / 4) * i}
+                      x1={20}
+                      y1={20 + (80 / 4) * i}
+                      x2={300}
+                      y2={20 + (80 / 4) * i}
                       stroke={theme.border}
                       strokeWidth={0.5}
                       strokeDasharray="4 4"
                     />
                   ))}
-                  {/* Y-axis labels */}
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Text
+                    <SvgText
                       key={`yl-${i}`}
-                      x={padding - 5}
-                      y={padding + (chartHeight / 4) * i}
+                      x={15}
+                      y={20 + (80 / 4) * i}
                       textAnchor="end"
                       fontSize={8}
                       fill={theme.textTertiary}
-                      dominantBaseline="middle"
+                      alignmentBaseline="middle"
                     >
-                      {i === 0 ? Math.round(maxValue).toLocaleString() : i === 4 ? '0' : Math.round(maxValue * (1 - i / 4)).toLocaleString()}
-                    </Text>
+                      {i === 0 ? Math.round(Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))).toLocaleString() : i === 4 ? '0' : Math.round(Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income))) * (1 - i / 4)).toLocaleString()}
+                    </SvgText>
                   ))}
-                  {/* Expense line */}
                   <Polyline
-                    points={chartDays
-                      .map((d, i) => {
-                        const x = padding + (i / 6) * chartWidth;
-                        const y = padding + chartHeight - (d.expense / maxValue) * chartHeight;
-                        return `${x},${y}`;
-                      })
-                      .join(' ')}
+                    points={Array.from({ length: 7 }).map((_, i) => {
+                      const x = 20 + (i / 6) * 280;
+                      const y = 20 + 80 - (chartDays[i].expense / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80;
+                      return `${x},${y}`;
+                    }).join(' ')}
                     fill="none"
                     stroke={theme.negative}
                     strokeWidth={2}
                   />
-                  {/* Income line */}
                   <Polyline
-                    points={chartDays
-                      .map((d, i) => {
-                        const x = padding + (i / 6) * chartWidth;
-                        const y = padding + chartHeight - (d.income / maxValue) * chartHeight;
-                        return `${x},${y}`;
-                      })
-                      .join(' ')}
+                    points={chartDays.map((d, i) => {
+                      const x = 20 + (i / 6) * 280;
+                      const y = 20 + 80 - (d.income / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80;
+                      return `${x},${y}`;
+                    }).join(' ')}
                     fill="none"
                     stroke={theme.positive}
                     strokeWidth={2}
                   />
-                  {/* Points */}
                   {chartDays.map((d, i) => (
-                    <View key={d.key}>
+                    <React.Fragment key={d.key}>
                       <Circle
-                        cx={20 + (i / 6) * chartWidth}
-                        cy={20 + chartHeight - (d.expense / maxValue) * chartHeight}
+                        cx={20 + (i / 6) * 280}
+                        cy={20 + 80 - (d.expense / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80}
                         r={3}
                         fill={theme.negative}
                       />
                       <Circle
-                        cx={20 + (i / 6) * chartWidth}
-                        cy={20 + chartHeight - (d.income / maxValue) * chartHeight}
+                        cx={20 + (i / 6) * 280}
+                        cy={20 + 80 - (d.income / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80}
                         r={3}
                         fill={theme.positive}
                       />
-                    </View>
+                    </React.Fragment>
                   ))}
                 </Svg>
                 <View style={styles.lineLegend}>
@@ -232,9 +235,13 @@ export default function InsightsScreen() {
                     <Text style={{ color: theme.textPrimary, fontSize: 12 }}>Income</Text>
                   </View>
                 </View>
-              );
+              </View>
+            );
           })()}
         </View>
+
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>Income by mode</Text>
           {modeRows.length === 0 ? (
             <Text style={{ color: theme.textTertiary, paddingVertical: 8 }}>No income this month.</Text>
           ) : (
@@ -353,4 +360,13 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
+  lineChartContainer: {
+    marginTop: 8,
+  },
+  lineLegend: {
+    marginTop: 8,
+    alignItems: 'center',
+  },
 });
+
+export default InsightsScreen;
