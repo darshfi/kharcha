@@ -1,10 +1,14 @@
 import { create } from 'zustand';
 import { Transaction, PaymentMode } from '../types/transaction';
 import { Category, DEFAULT_CATEGORIES } from '../data/categories';
+import { saveTransaction, deleteTransaction as deleteTransactionFromSupabase } from '../services/transactions';
 
 interface AppState {
   transactions: Transaction[];
   categories: Category[];
+  userId: string | null;
+  setUserId: (id: string | null) => void;
+  setTransactions: (txns: Transaction[]) => void;
   addTransaction: (t: Transaction) => void;
   deleteTransaction: (id: string) => void;
   addCategory: (c: Category) => void;
@@ -12,19 +16,34 @@ interface AppState {
   clearAll: () => void;
 }
 
-export const useStore = create<AppState>((set) => ({
+export const useStore = create<AppState>((set, get) => ({
   transactions: [],
   categories: DEFAULT_CATEGORIES,
+  userId: null,
 
-  addTransaction: (t) =>
+  setUserId: (id) => set({ userId: id }),
+
+  setTransactions: (txns) => set({ transactions: txns }),
+
+  addTransaction: (t) => {
     set((state) => ({
       transactions: [t, ...state.transactions],
-    })),
+    }));
+    const { userId } = get();
+    if (userId) {
+      saveTransaction(t);
+    }
+  },
 
-  deleteTransaction: (id) =>
+  deleteTransaction: (id) => {
     set((state) => ({
       transactions: state.transactions.filter((t) => t.id !== id),
-    })),
+    }));
+    const { userId } = get();
+    if (userId) {
+      deleteTransactionFromSupabase(id, userId);
+    }
+  },
 
   addCategory: (c) =>
     set((state) => ({

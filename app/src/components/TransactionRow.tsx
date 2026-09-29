@@ -46,8 +46,8 @@ export default function TransactionRow({ transaction, category, onDelete }: Prop
       >
         <View style={styles.row}>
           <View style={[styles.dot, { backgroundColor: dotColor }]}>
-            <Text style={styles.dotText}>
-              {isIncome ? '💰' : category?.emoji || '📦'}
+            <Text style={[styles.dotText, { color: isIncome ? theme.positive : category?.color || theme.textSecondary }]}>
+              {isIncome ? '+' : category?.symbol || 'O'}
             </Text>
           </View>
           <View style={styles.body}>

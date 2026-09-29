@@ -36,7 +36,7 @@ export default function CategoriesScreen() {
               style={[styles.row, { borderColor: theme.border }]}
             >
               <View style={[styles.dot, { backgroundColor: `${c.color}33` }]}>
-                <Text style={{ fontSize: 18 }}>{c.emoji}</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: c.color }}>{c.symbol}</Text>
               </View>
               <Text style={[styles.rowName, { color: theme.textPrimary }]}>{c.name}</Text>
               {c.name !== 'Others' && (

@@ -1,23 +1,23 @@
 export interface Category {
   id: string;
-  emoji: string;
+  symbol: string;
   name: string;
   color: string;
 }
 
 export const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'food', emoji: '🍔', name: 'Food', color: '#F59E0B' },
-  { id: 'transport', emoji: '🚗', name: 'Transport', color: '#3B82F6' },
-  { id: 'health', emoji: '🏥', name: 'Health', color: '#EF4444' },
-  { id: 'shopping', emoji: '🛍️', name: 'Shopping', color: '#EC4899' },
-  { id: 'rent', emoji: '🏠', name: 'Rent & bills', color: '#8B5CF6' },
-  { id: 'subscriptions', emoji: '📱', name: 'Subscriptions', color: '#06B6D4' },
-  { id: 'entertainment', emoji: '🎮', name: 'Entertainment', color: '#10B981' },
-  { id: 'travel', emoji: '✈️', name: 'Travel', color: '#F97316' },
-  { id: 'education', emoji: '📚', name: 'Education', color: '#6366F1' },
-  { id: 'gifts', emoji: '🎁', name: 'Gifts', color: '#D946EF' },
-  { id: 'work', emoji: '💼', name: 'Work', color: '#64748B' },
-  { id: 'others', emoji: '📦', name: 'Others', color: '#94A3B8' },
+  { id: 'food', symbol: 'F', name: 'Food', color: '#F59E0B' },
+  { id: 'transport', symbol: 'T', name: 'Transport', color: '#3B82F6' },
+  { id: 'health', symbol: 'H', name: 'Health', color: '#EF4444' },
+  { id: 'shopping', symbol: 'S', name: 'Shopping', color: '#EC4899' },
+  { id: 'rent', symbol: 'R', name: 'Rent & bills', color: '#8B5CF6' },
+  { id: 'subscriptions', name: 'Subscriptions', symbol: 'U', color: '#06B6D4' },
+  { id: 'entertainment', symbol: 'E', name: 'Entertainment', color: '#10B981' },
+  { id: 'travel', symbol: 'V', name: 'Travel', color: '#F97316' },
+  { id: 'education', symbol: 'D', name: 'Education', color: '#6366F1' },
+  { id: 'gifts', symbol: 'G', name: 'Gifts', color: '#D946EF' },
+  { id: 'work', symbol: 'W', name: 'Work', color: '#64748B' },
+  { id: 'others', symbol: 'O', name: 'Others', color: '#94A3B8' },
 ];
 
 const KEYWORD_MAP: Record<string, RegExp> = {

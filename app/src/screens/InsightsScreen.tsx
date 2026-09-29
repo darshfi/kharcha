@@ -83,7 +83,7 @@ export default function InsightsScreen() {
               <View key={category?.id} style={styles.breakdownRow}>
                 <View style={styles.breakdownLabel}>
                   <Text style={{ color: theme.textPrimary, fontSize: 14 }}>
-                    {category?.emoji} {category?.name}
+                    {category?.symbol} {category?.name}
                   </Text>
                 </View>
                 <View style={styles.breakdownValue}>

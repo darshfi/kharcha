@@ -2,9 +2,11 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
+import { useAuth } from '../auth/AuthContext';
 
 export default function SettingsScreen() {
   const { theme, isDark, toggle } = useTheme();
+  const { user, signOut } = useAuth();
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
@@ -30,6 +32,19 @@ export default function SettingsScreen() {
           <Text style={[styles.rowSub, { color: theme.textSecondary }]}>
             Currently {isDark ? 'dark' : 'light'} — follows system by default
           </Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.rowLabel, { color: theme.textPrimary }]}>Account</Text>
+          <Text style={[styles.rowSub, { color: theme.textSecondary }]}>
+            {user?.email || 'Not signed in'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.signOutBtn, { borderColor: theme.border }]}
+            onPress={signOut}
+          >
+            <Text style={{ color: theme.negative, fontWeight: '600' }}>Sign out</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -93,5 +108,12 @@ const styles = StyleSheet.create({
   },
   toggleKnobOff: {
     alignSelf: 'flex-start',
+  },
+  signOutBtn: {
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    marginTop: 12,
   },
 });
