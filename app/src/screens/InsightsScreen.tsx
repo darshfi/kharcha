@@ -266,6 +266,18 @@ function InsightsScreen() {
                     strokeWidth={2}
                   />
                   <Polyline
+                    key="expense-line"
+                    points={chartDays.map((d, i) => {
+                      const x = 20 + (i / 6) * 280;
+                      const y = 20 + 80 - (d.expense / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80;
+                      return `${x},${y}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke={theme.negative}
+                    strokeWidth={2}
+                  />
+                  <Polyline
+                    key="income-line"
                     points={chartDays.map((d, i) => {
                       const x = 20 + (i / 6) * 280;
                       const y = 20 + 80 - (d.income / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80;
@@ -278,12 +290,14 @@ function InsightsScreen() {
                   {chartDays.map((d, i) => (
                     <React.Fragment key={d.key}>
                       <Circle
+                        key={`expense-dot-${d.key}`}
                         cx={20 + (i / 6) * 280}
                         cy={20 + 80 - (d.expense / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80}
                         r={3}
                         fill={theme.negative}
                       />
                       <Circle
+                        key={`income-dot-${d.key}`}
                         cx={20 + (i / 6) * 280}
                         cy={20 + 80 - (d.income / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80}
                         r={3}

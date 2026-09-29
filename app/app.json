@@ -11,6 +11,10 @@
     },
     "android": {
       "package": "com.kharcha.app"
+    },
+    "extra": {
+      "EXPO_PUBLIC_SUPABASE_URL": "https://pmucrnjzwdkjzwunfxxw.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtdWNybmp6d2Rranp3dW5meHh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNzY3NjEsImV4cCI6MjEwNTg1Mjc2MX0.g-xMLOi6p4ZhaJ8G3qEFsiZ8nN5JcMJVUrfxghHJUf4"
     }
   }
 }

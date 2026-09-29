@@ -36,9 +36,26 @@ export default function AddTransactionSheet() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [smsText, setSmsText] = useState('');
 
+  const isValidUUID = (str: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  };
+
   const handleSave = () => {
     const amt = parseFloat(amount);
     if (!(amt > 0)) return;
+
+    // Validate categoryId is a valid UUID for expenses
+    if (type === 'expense' && !isValidUUID(categoryId)) {
+      // Try to find the category by name as fallback
+      const matchedCategory = categories.find((c) => c.name.toLowerCase() === categoryId.toLowerCase());
+      if (matchedCategory && isValidUUID(matchedCategory.id)) {
+        // Use the matched category's UUID
+      } else {
+        console.warn('Invalid category ID:', categoryId);
+        return;
+      }
+    }
 
     const txn = parsedSMSToTransaction(
       {
@@ -52,7 +69,13 @@ export default function AddTransactionSheet() {
       user?.id || 'local-user'
     );
     txn.type = type;
-    txn.categoryId = type === 'expense' ? categoryId : null;
+    // Ensure categoryId is a valid UUID
+    if (type === 'expense') {
+      const matchedCategory = categories.find((c) => c.id === categoryId);
+      txn.categoryId = matchedCategory && isValidUUID(matchedCategory.id) ? matchedCategory.id : null;
+    } else {
+      txn.categoryId = null;
+    }
     txn.paymentMode = type === 'expense' ? paymentMode : null;
     txn.description = description;
 
