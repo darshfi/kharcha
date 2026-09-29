@@ -1,190 +1,21 @@
 import { Router } from 'express';
 import { Request, Response } from 'express';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
-// Get all expenses for a user
-router.get('/', async (req: Request, res: Response) => {
-  try {
-    // In a real app, we would get user_id from JWT token
-    // For now, we'll get it from query param (to be replaced with auth middleware)
-    const userId = req.query.user_id as string;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    // This would normally use Supabase client from a service
-    // For now, returning mock data structure
-    res.status(200).json([]);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Create a new expense
-router.post('/', async (req: Request, res: Response) => {
-  try {
-    const { user_id, ...expenseData } = req.body;
-
-    if (!user_id) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    // Validate required fields
-    if (!expenseData.amount || !expenseData.description || !expenseData.category_id || !expenseData.date) {
-      return res.status(400).json({ error: 'Amount, description, category, and date are required' });
-    }
-
-    // This would normally use Supabase client from a service
-    // For now, returning success response
-    res.status(201).json({
-      id: 'mock-id',
-      ...expenseData,
-      user_id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get a specific expense
-router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const userId = req.query.user_id as string;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    // This would normally fetch from Supabase
-    res.status(200).json({
-      id,
-      amount: 0,
-      description: '',
-      category_id: '',
-      date: new Date().toISOString().split('T')[0],
-      user_id: userId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Update an expense
-router.put('/:id', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { user_id, ...expenseData } = req.body;
-
-    if (!user_id) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    // This would normally update in Supabase
-    res.status(200).json({
-      id,
-      ...expenseData,
-      user_id,
-      updated_at: new Date().toISOString()
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete an expense
-router.delete('/:id', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const userId = req.query.user_id as string;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    // This would normally delete from Supabase
-    res.status(200).json({ message: 'Expense deleted successfully' });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get daily stats
-router.get('/stats/daily', async (req: Request, res: Response) => {
-  try {
-    const userId = req.query.user_id as string;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    // This would normally calculate from Supabase
-    res.status(200).json({
-      date: new Date().toISOString().split('T')[0],
-      total: 0,
-      count: 0,
-      average: 0
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get weekly stats
-router.get('/stats/weekly', async (req: Request, res: Response) => {
-  try {
-    const userId = req.query.user_id as string;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    // This would normally calculate from Supabase
-    res.status(200).json({
-      week_start: new Date().toISOString().split('T')[0],
-      week_end: new Date().toISOString().split('T')[0],
-      total: 0,
-      daily_averages: []
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get monthly stats
-router.get('/stats/monthly', async (req: Request, res: Response) => {
-  try {
-    const userId = req.query.user_id as string;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
-    }
-
-    // This would normally calculate from Supabase
-    res.status(200).json({
-      month: new Date().toISOString().split('T')[0].substring(0, 7),
-      total: 0,
-      category_breakdown: [],
-      daily_averages: []
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // SMS parsing endpoint
-router.post('/sms-parse', async (req: Request, res: Response) => {
+router.post('/sms-parse', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { sms_text, user_id } = req.body;
 
     if (!sms_text || !user_id) {
       return res.status(400).json({ error: 'SMS text and user ID are required' });
+    }
+
+    // Since we're using authMiddleware, we could also verify if req.user?.id matches user_id
+    if (req.user && req.user.id !== user_id) {
+      return res.status(403).json({ error: 'Unauthorized: user ID mismatch' });
     }
 
     // Simple SMS parsing logic (similar to the HTML prototype)

@@ -294,3 +294,12 @@ For issues or questions:
 1. Check `docs/DATABASE.md` for database schema
 2. Check `quick_reference_guide.md` for features overview
 3. Check individual README files in `frontend/` and `backend/`
+
+## Phase 1 Updates (Backend Audit and Fix)
+- Audited `authMiddleware` usage across the backend - it was present but inactive.
+- Grepped `frontend/src` for API calls: found that all components use the Supabase JS client directly for CRUD operations (`ExpenseContext`, `IncomeContext`, `CategoryContext`, `BudgetContext`, `AuthContext`). No frontend code utilizes the mock CRUD routes in `backend/src/routes`. The `frontend/src/services/api.ts` file is dead code.
+- Removed unused and mock CRUD handlers (`auth.ts`, `budgets.ts`, `categories.ts`, `incomes.ts`, `analytics.ts` from backend routes).
+- Refactored `backend/src/routes/expenses.ts` to ONLY contain the `/sms-parse` logic and applied `authMiddleware` to protect it and ensure the provided `user_id` matches the authenticated token payload.
+- Cleaned up `backend/src/server.ts` to only mount the `expenses` route.
+- Re-aligned `API_BASE_URL` fallback in `frontend/src/services/api.ts` to target port 3001 (backend port) rather than 3000, adhering to the requirements even though the file is unsused.
+- Audited RLS policies in `database/schema.sql`: Confirmed `expense_categories`, `expenses`, `incomes`, and `budgets` all have properly structured Row Level Security policies (SELECT, INSERT, UPDATE, DELETE) using `auth.uid() = user_id`.
