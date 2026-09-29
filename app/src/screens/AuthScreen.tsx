@@ -21,6 +21,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -33,6 +34,19 @@ export default function AuthScreen() {
       ? await signIn(email.trim(), password)
       : await signUp(email.trim(), password);
     if (error) setError(error);
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setError('Enter your email first');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    if (error) setError(error.message);
+    else setResetSent(true);
     setLoading(false);
   };
 
@@ -90,6 +104,17 @@ export default function AuthScreen() {
               </Text>
             </TouchableOpacity>
 
+            {isLogin && (
+              <TouchableOpacity
+                style={[styles.secondaryBtn, { borderColor: theme.border }]}
+                onPress={handleForgotPassword}
+              >
+                <Text style={{ color: theme.textSecondary, fontWeight: '600' }}>
+                  Forgot password?
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={[styles.secondaryBtn, { borderColor: theme.border }]}
               onPress={() => {
@@ -101,6 +126,12 @@ export default function AuthScreen() {
                 {isLogin ? 'Need an account? Sign up' : 'Have an account? Sign in'}
               </Text>
             </TouchableOpacity>
+
+            {resetSent && (
+              <Text style={{ color: theme.positive, fontSize: 13, marginTop: 12, textAlign: 'center' }}>
+                Check your email for a reset link
+              </Text>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -139,7 +139,7 @@ export default function AddTransactionSheet() {
                   onPress={() => setCategoryId(c.id)}
                 >
                   <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
-                    {c.symbol} {c.name}
+                    {c.name}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -157,7 +157,7 @@ export default function AddTransactionSheet() {
                   onPress={() => setPaymentMode(m.label as PaymentMode)}
                 >
                   <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
-                    {m.symbol} {m.label}
+                    {m.label}
                   </Text>
                 </TouchableOpacity>
               ))}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path, Circle } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeProvider';
 import { useStore } from '../store/useStore';
 
@@ -75,38 +76,53 @@ export default function InsightsScreen() {
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>By category</Text>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>Spending by category</Text>
           {categoryRows.length === 0 ? (
             <Text style={{ color: theme.textTertiary, paddingVertical: 8 }}>No expenses this month.</Text>
           ) : (
-            categoryRows.map(({ category, amount }) => (
-              <View key={category?.id} style={styles.breakdownRow}>
-                <View style={styles.breakdownLabel}>
-                  <Text style={{ color: theme.textPrimary, fontSize: 14 }}>
-                    {category?.symbol} {category?.name}
-                  </Text>
-                </View>
-                <View style={styles.breakdownValue}>
-                  <Text style={{ color: theme.textPrimary, fontWeight: '600', fontSize: 14 }}>
-                    ₹{amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                  </Text>
-                  <Text style={{ color: theme.textTertiary, fontSize: 12 }}>
-                    {totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0}%
-                  </Text>
-                </View>
-                <View style={[styles.track, { backgroundColor: theme.track }]}>
-                  <View
-                    style={[
-                      styles.fill,
-                      {
-                        width: `${totalSpent > 0 ? (amount / totalSpent) * 100 : 0}%`,
-                        backgroundColor: category?.color || theme.accent,
-                      },
-                    ]}
-                  />
-                </View>
+            <View style={styles.pieContainer}>
+              <Svg width={160} height={160} viewBox="0 0 42 42">
+                {(() => {
+                  let cumulativePercent = 0;
+                  return categoryRows.map(({ category, amount }) => {
+                    const percent = totalSpent > 0 ? (amount / totalSpent) * 100 : 0;
+                    const startAngle = (cumulativePercent / 100) * 360;
+                    cumulativePercent += percent;
+                    const endAngle = (cumulativePercent / 100) * 360;
+                    const largeArc = percent > 50 ? 1 : 0;
+                    const startRad = ((startAngle - 90) * Math.PI) / 180;
+                    const endRad = ((endAngle - 90) * Math.PI) / 180;
+                    const x1 = 21 + 15 * Math.cos(startRad);
+                    const y1 = 21 + 15 * Math.sin(startRad);
+                    const x2 = 21 + 15 * Math.cos(endRad);
+                    const y2 = 21 + 15 * Math.sin(endRad);
+                    const d = `M 21 21 L ${x1} ${y1} A 15 15 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                    return (
+                      <Path
+                        key={category?.id}
+                        d={d}
+                        fill={category?.color || theme.accent}
+                        stroke={theme.surface}
+                        strokeWidth={0.5}
+                      />
+                    );
+                  });
+                })()}
+              </Svg>
+              <View style={styles.pieLegend}>
+                {categoryRows.map(({ category, amount }) => (
+                  <View key={category?.id} style={styles.legendRow}>
+                    <View style={[styles.legendDot, { backgroundColor: category?.color || theme.accent }]} />
+                    <Text style={{ color: theme.textPrimary, fontSize: 12, flex: 1 }}>
+                      {category?.name}
+                    </Text>
+                    <Text style={{ color: theme.textTertiary, fontSize: 12 }}>
+                      {totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0}%
+                    </Text>
+                  </View>
+                ))}
               </View>
-            ))
+            </View>
           )}
         </View>
 
@@ -210,5 +226,24 @@ const styles = StyleSheet.create({
   fill: {
     height: '100%',
     borderRadius: 4,
+  },
+  pieContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  pieLegend: {
+    flex: 1,
+    gap: 6,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
 });
