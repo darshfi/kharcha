@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Kharcha",
+    "slug": "kharcha-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.kharcha.app"
+    }
+  }
+}
