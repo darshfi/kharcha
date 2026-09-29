@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { loadTransactions } from '../services/transactions';
 import { useStore } from '../store/useStore';
+import { Category, DEFAULT_CATEGORIES } from '../data/categories';
 
 interface AuthContextValue {
   user: User | null;
@@ -22,11 +23,43 @@ const AuthContext = createContext<AuthContextValue>({
   signOut: async () => {},
 });
 
+async function loadCategories(userId: string): Promise<Category[]> {
+  const { data, error } = await supabase
+    .from('expense_categories')
+    .select('*')
+    .eq('user_id', userId)
+    .order('order_index', { ascending: true });
+
+  if (error) return DEFAULT_CATEGORIES;
+
+  // Map database categories to local format
+  const dbCategories: Category[] = (data || []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    emoji: row.icon || '📦',
+    color: row.color || '#6b7280',
+  }));
+
+  // If no categories found, return defaults
+  if (dbCategories.length === 0) return DEFAULT_CATEGORIES;
+
+  return dbCategories;
+}
+
+const AuthContext = createContext<AuthContextValue>({
+  user: null,
+  session: null,
+  loading: true,
+  signUp: async () => ({ error: null }),
+  signIn: async () => ({ error: null }),
+  signOut: async () => {},
+});
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const { setTransactions, setUserId } = useStore();
+  const { setTransactions, setUserId, setCategories } = useStore();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -35,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserId(session?.user?.id ?? null);
       if (session?.user) {
         loadTransactions(session.user.id).then(setTransactions);
+        loadCategories(session.user.id).then(setCategories);
       }
       setLoading(false);
     });
@@ -45,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserId(session?.user?.id ?? null);
       if (session?.user) {
         loadTransactions(session.user.id).then(setTransactions);
+        loadCategories(session.user.id).then(setCategories);
       } else {
         setTransactions([]);
       }

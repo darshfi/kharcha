@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path, Circle } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Polyline } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeProvider';
 import { useStore } from '../store/useStore';
 
@@ -111,7 +111,7 @@ export default function InsightsScreen() {
               </Svg>
               <View style={styles.pieLegend}>
                 {categoryRows.map(({ category, amount }) => (
-                  <View key={category?.id} style={styles.legendRow}>
+                  <View key={`${category?.id}-${amount}`} style={styles.legendRow}>
                     <View style={[styles.legendDot, { backgroundColor: category?.color || theme.accent }]} />
                     <Text style={{ color: theme.textPrimary, fontSize: 12, flex: 1 }}>
                       {category?.name}
@@ -126,8 +126,115 @@ export default function InsightsScreen() {
           )}
         </View>
 
+        {/* Expense vs Income Line Chart */}
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Income by mode</Text>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>Expense vs Income (7 days)</Text>
+          {(() => {
+            const chartDays = Array.from({ length: 7 }, (_, i) => {
+              const d = new Date();
+              d.setDate(d.getDate() - (6 - i));
+              const key = d.toISOString().split('T')[0];
+              const label = d.toLocaleDateString('en-IN', { weekday: 'short' }).slice(0, 2);
+              const expenseValue = transactions
+                .filter((t) => t.date === key && t.type === 'expense')
+                .reduce((s, t) => s + t.amount, 0);
+              const incomeValue = transactions
+                .filter((t) => t.date === key && t.type === 'income')
+                .reduce((s, t) => s + t.amount, 0);
+              return { key, label, expense: expenseValue, income: incomeValue };
+            });
+            const maxValue = Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)));
+            const width = 320;
+            const height = 120;
+            const padding = 20;
+            const chartWidth = width - 2 * padding;
+            const chartHeight = height - 2 * padding;
+
+            return (
+              <View style={styles.lineChartContainer}>
+                <Svg width={width} height={height}>
+                  {/* Grid lines */}
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Line
+                      key={`grid-${i}`}
+                      x1={padding}
+                      y1={padding + (chartHeight / 4) * i}
+                      x2={width - padding}
+                      y2={padding + (chartHeight / 4) * i}
+                      stroke={theme.border}
+                      strokeWidth={0.5}
+                      strokeDasharray="4 4"
+                    />
+                  ))}
+                  {/* Y-axis labels */}
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Text
+                      key={`yl-${i}`}
+                      x={padding - 5}
+                      y={padding + (chartHeight / 4) * i}
+                      textAnchor="end"
+                      fontSize={8}
+                      fill={theme.textTertiary}
+                      dominantBaseline="middle"
+                    >
+                      {i === 0 ? Math.round(maxValue).toLocaleString() : i === 4 ? '0' : Math.round(maxValue * (1 - i / 4)).toLocaleString()}
+                    </Text>
+                  ))}
+                  {/* Expense line */}
+                  <Polyline
+                    points={chartDays
+                      .map((d, i) => {
+                        const x = padding + (i / 6) * chartWidth;
+                        const y = padding + chartHeight - (d.expense / maxValue) * chartHeight;
+                        return `${x},${y}`;
+                      })
+                      .join(' ')}
+                    fill="none"
+                    stroke={theme.negative}
+                    strokeWidth={2}
+                  />
+                  {/* Income line */}
+                  <Polyline
+                    points={chartDays
+                      .map((d, i) => {
+                        const x = padding + (i / 6) * chartWidth;
+                        const y = padding + chartHeight - (d.income / maxValue) * chartHeight;
+                        return `${x},${y}`;
+                      })
+                      .join(' ')}
+                    fill="none"
+                    stroke={theme.positive}
+                    strokeWidth={2}
+                  />
+                  {/* Points */}
+                  {chartDays.map((d, i) => (
+                    <View key={d.key}>
+                      <Circle
+                        cx={20 + (i / 6) * chartWidth}
+                        cy={20 + chartHeight - (d.expense / maxValue) * chartHeight}
+                        r={3}
+                        fill={theme.negative}
+                      />
+                      <Circle
+                        cx={20 + (i / 6) * chartWidth}
+                        cy={20 + chartHeight - (d.income / maxValue) * chartHeight}
+                        r={3}
+                        fill={theme.positive}
+                      />
+                    </View>
+                  ))}
+                </Svg>
+                <View style={styles.lineLegend}>
+                  <View style={styles.legendRow}>
+                    <View style={[styles.legendDot, { backgroundColor: theme.negative }]} />
+                    <Text style={{ color: theme.textPrimary, fontSize: 12 }}>Expense</Text>
+                    <View style={[styles.legendDot, { backgroundColor: theme.positive }]} />
+                    <Text style={{ color: theme.textPrimary, fontSize: 12 }}>Income</Text>
+                  </View>
+                </View>
+              );
+          })()}
+        </View>
           {modeRows.length === 0 ? (
             <Text style={{ color: theme.textTertiary, paddingVertical: 8 }}>No income this month.</Text>
           ) : (

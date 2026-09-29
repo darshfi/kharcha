@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAuth } from '../auth/AuthContext';
+import { supabase } from '../auth/supabase';
 
 export default function AuthScreen() {
   const { theme } = useTheme();
@@ -22,6 +23,7 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [signUpSent, setSignUpSent] = useState(false);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -34,6 +36,7 @@ export default function AuthScreen() {
       ? await signIn(email.trim(), password)
       : await signUp(email.trim(), password);
     if (error) setError(error);
+    else if (!isLogin) setSignUpSent(true);
     setLoading(false);
   };
 
@@ -130,6 +133,12 @@ export default function AuthScreen() {
             {resetSent && (
               <Text style={{ color: theme.positive, fontSize: 13, marginTop: 12, textAlign: 'center' }}>
                 Check your email for a reset link
+              </Text>
+            )}
+
+            {signUpSent && (
+              <Text style={{ color: theme.positive, fontSize: 13, marginTop: 12, textAlign: 'center' }}>
+                Confirmation email sent! Check your inbox, confirm your email, then sign in.
               </Text>
             )}
           </View>

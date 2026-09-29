@@ -9,6 +9,7 @@ interface AppState {
   userId: string | null;
   setUserId: (id: string | null) => void;
   setTransactions: (txns: Transaction[]) => void;
+  setCategories: (categories: Category[]) => void;
   addTransaction: (t: Transaction) => void;
   deleteTransaction: (id: string) => void;
   addCategory: (c: Category) => void;
@@ -24,6 +25,8 @@ export const useStore = create<AppState>((set, get) => ({
   setUserId: (id) => set({ userId: id }),
 
   setTransactions: (txns) => set({ transactions: txns }),
+
+  setCategories: (cats) => set({ categories: cats }),
 
   addTransaction: (t) => {
     set((state) => ({
