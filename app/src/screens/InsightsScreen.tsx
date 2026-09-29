@@ -47,6 +47,28 @@ function InsightsScreen() {
   });
   const maxDay = Math.max(1, ...days.map((d) => d.value));
 
+  // Monthly daily expenses for the full month
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthDays = Array.from({ length: daysInMonth }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), i + 1);
+    const key = d.toISOString().split('T')[0];
+    const label = (i + 1).toString();
+    const value = transactions
+      .filter((t) => t.date === key && t.type === 'expense')
+      .reduce((s, t) => s + t.amount, 0);
+    return { key, label, value };
+  });
+  const maxMonthDay = Math.max(1, ...monthDays.map((d) => d.value));
+
+  // Average expense per day
+  const avgExpensePerDay = totalSpent / daysInMonth;
+
+  // Average expense per category (only categories with expenses)
+  const categoriesWithExpenses = categoryRows.filter((r) => r.amount > 0);
+  const avgExpensePerCategory = categoriesWithExpenses.length > 0
+    ? totalSpent / categoriesWithExpenses.length
+    : 0;
+
   const chartDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
@@ -87,6 +109,49 @@ function InsightsScreen() {
           <Text style={[styles.footnote, { color: theme.textSecondary }]}>
             ₹{totalSpent.toLocaleString('en-IN', { maximumFractionDigits: 0 })} this week
           </Text>
+        </View>
+
+        {/* Monthly expenses chart */}
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>This month (daily)</Text>
+          <View style={styles.chart}>
+            {monthDays.map((d, i) => (
+              <View key={d.key} style={styles.barWrap}>
+                <View
+                  style={[
+                    styles.bar,
+                    {
+                      height: Math.max((d.value / maxMonthDay) * 100, d.value > 0 ? 4 : 1),
+                      backgroundColor: d.value > 0 ? theme.accent : theme.track,
+                    },
+                  ]}
+                />
+                <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{d.label}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={[styles.footnote, { color: theme.textSecondary }]}>
+            ₹{totalSpent.toLocaleString('en-IN', { maximumFractionDigits: 0 })} this month
+          </Text>
+        </View>
+
+        {/* Averages */}
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>Averages</Text>
+          <View style={styles.averagesRow}>
+            <View style={styles.avgItem}>
+              <Text style={[styles.avgLabel, { color: theme.textSecondary }]}>Avg / day</Text>
+              <Text style={[styles.avgValue, { color: theme.textPrimary }]}>
+                ₹{Math.round(avgExpensePerDay).toLocaleString('en-IN')}
+              </Text>
+            </View>
+            <View style={styles.avgItem}>
+              <Text style={[styles.avgLabel, { color: theme.textSecondary }]}>Avg / category</Text>
+              <Text style={[styles.avgValue, { color: theme.textPrimary }]}>
+                ₹{Math.round(avgExpensePerCategory).toLocaleString('en-IN')}
+              </Text>
+            </View>
+          </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -366,6 +431,24 @@ const styles = StyleSheet.create({
   lineLegend: {
     marginTop: 8,
     alignItems: 'center',
+  },
+  averagesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  avgItem: {
+    alignItems: 'center',
+  },
+  avgLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  avgValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: 'BricolageGrotesque_700Bold',
+    fontVariant: ['tabular-nums'],
   },
 });
 
