@@ -55,3 +55,7 @@ Thumbs.db
 .ripgreprc
 .mcp.json
 .claude/
+
+# Generated Expo native projects (native capture source lives in app/modules).
+app/android/
+app/ios/

@@ -4,6 +4,7 @@ import { supabase } from './supabase';
 import { loadTransactions } from '../services/transactions';
 import { loadCategories } from '../services/categories';
 import { useStore } from '../store/useStore';
+import { setCaptureUser } from '../capture/native';
 
 interface AuthContextValue {
   user: User | null;
@@ -32,6 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let receivedEvent = false;
     const applySession = (next: Session | null) => {
       if (!active) return;
+      // Change the native owner before any React effects or ledger updates run.
+      // Capture storage failure must not prevent signing out of the account.
+      try { setCaptureUser(next?.user.id ?? null); } catch { /* Capture settings surface storage errors. */ }
       if (useStore.getState().userId !== (next?.user.id ?? null)) {
         setDataLoading(Boolean(next?.user));
         setDataError(null);

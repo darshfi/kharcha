@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAuth } from '../auth/AuthContext';
+import { CaptureSettingsPanel } from '../capture/CaptureSettingsPanel';
+import { refreshCapturedTransactions } from '../services/capturedTransactions';
 
 export default function SettingsScreen() {
   const { theme, isDark, toggle } = useTheme();
@@ -12,6 +14,9 @@ export default function SettingsScreen() {
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <Text style={[styles.heading, { color: theme.textPrimary }]}>Settings</Text>
+
+        <CaptureSettingsPanel userId={user?.id ?? null}
+          onImported={() => user ? refreshCapturedTransactions(user.id) : undefined} />
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.row}>

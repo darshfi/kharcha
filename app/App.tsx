@@ -8,12 +8,16 @@ import AppNavigator from './src/navigation/AppNavigator';
 import AuthScreen from './src/screens/AuthScreen';
 import { View, ActivityIndicator, Text, Button, Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useAutomaticCapture } from './src/capture/useAutomaticCapture';
+import { refreshCapturedTransactions } from './src/services/capturedTransactions';
 
 const queryClient = new QueryClient();
 
 function Root() {
   const { user, loading, dataLoading, dataError, retryLoad, signOut } = useAuth();
   const { theme } = useTheme();
+  const captureUserId = user && !loading && !dataLoading && !dataError ? user.id : null;
+  useAutomaticCapture(captureUserId, () => captureUserId ? refreshCapturedTransactions(captureUserId) : undefined);
 
   if (loading || (user && dataLoading)) {
     return (
