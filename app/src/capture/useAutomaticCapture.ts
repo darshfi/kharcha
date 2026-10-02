@@ -48,7 +48,9 @@ export function useAutomaticCapture(userId: string | null, onImported: () => voi
       current = false;
       listener.remove();
       clearInterval(interval);
-      try { native.setActiveUser(null); } catch { /* Storage status remains visible. */ }
+      // Keep the signed-in capture owner through Activity/JS teardown so the native
+      // service can still capture with the UI closed. Auth session changes explicitly
+      // call setCaptureUser(null/newOwner), and a null readiness argument above pauses it.
     };
   }, [userId]);
 }

@@ -10,7 +10,7 @@ Kharcha can capture new completed INR debit/credit notification alerts from expl
 
 ## Integration API
 
-Call `setCaptureUser(nextUserId)` from the authentication session change handler before replacing account data; call it with `null` on sign-out. It is synchronous and stores the active capture owner without storing a session or token. Catch native storage errors so normal authentication can continue.
+Call `setCaptureUser(nextUserId)` from the authentication session change handler before replacing account data; call it with `null` on sign-out. It is synchronous and stores the active capture owner without storing a session or token. Catch native storage errors so normal authentication can continue. Ordinary React/Activity teardown preserves this owner so native capture continues with the UI closed; authenticated session changes are the authoritative sign-out/account-switch boundary.
 
 Mount `useAutomaticCapture(readyUserId, onCommitted)` once inside the authenticated app. Pass `null` until that account's initial categories/ledger load is ready. The callback runs after successful **imported or duplicate** receipts, including partial batch success and acknowledgment failures. Refresh captured ledger rows with account guards; avoid replacing concurrent manual edits/deletions with a stale full-list response. Render `<CaptureSettingsPanel userId={userId} onImported={onCommitted} />` in Settings.
 
@@ -58,6 +58,8 @@ Queue tests: `cd frontend && npx vitest run src/__tests__/capture.test.ts`.
 SQL migration/RPC tests: `cd backend && node --require ts-node/register src/__tests__/capture.test.ts`.
 Type check: `cd app && npx tsc --noEmit`.
 Native module check after prebuild: `cd app/android && ./gradlew :transaction-capture:compileDebugKotlin`.
+
+Verified locally on 2026-10-02: production parser 40 checks, import queue/refresh retry 10 tests, migration/RPC 10 tests, app/backend TypeScript, Expo autolinking, native Kotlin and Java compilation, and merged Android app manifest. The native build used SDK 36, minSdk 24, JDK 21, Gradle 9.3.1, Expo SDK 57 and React Native 0.86. The merged manifest contains the protected listener and disables Android backup. These checks do not constitute a release-device test or application of the live database migration.
 
 The PGlite tests cover migration reruns, simultaneous Promise-based duplicate callers, event retries, references across source apps, balance/amount separation, owned categories, manual-reference dedupe, credit direction, deletion tombstones, input validation, anonymous calls, account-switch/spoof guards, and direct table privilege/RLS restrictions. PGlite serializes its single connection; a real multi-connection PostgreSQL race test remains part of deployment verification.
 
