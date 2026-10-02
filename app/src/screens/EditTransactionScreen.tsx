@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { useStore } from '../store/useStore';
@@ -60,11 +60,11 @@ export default function EditTransactionScreen({ route, navigation }: NativeStack
       <Text style={[styles.label, { color: theme.textSecondary }]}>Category</Text>
       {!categories.some(c => c.id === categoryId) && categoryId !== null && <Text style={{ color: theme.textSecondary, marginBottom: 8 }}>The original category was removed. Choose another category or leave it unchanged.</Text>}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {[{ id: null, name: 'Uncategorized', color: theme.accent }, ...categories].map(c => <Pressable key={c.id ?? 'none'} disabled={saving} onPress={() => setCategoryId(c.id)} style={[styles.chip, { borderColor: categoryId === c.id ? c.color : theme.border, backgroundColor: categoryId === c.id ? `${c.color}22` : theme.surfaceRaised }]}><Text style={{ color: theme.textPrimary }}>{c.name}</Text></Pressable>)}
+        {[{ id: null, name: 'Uncategorized', color: theme.accent }, ...categories].map(c => <MotionPressable selectionFeedback={categoryId !== c.id} key={c.id ?? 'none'} disabled={saving} onPress={() => setCategoryId(c.id)} style={[styles.chip, { borderColor: categoryId === c.id ? c.color : theme.border, backgroundColor: categoryId === c.id ? `${c.color}22` : theme.surfaceRaised }]}><Text style={{ color: theme.textPrimary }}>{c.name}</Text></MotionPressable>)}
       </ScrollView>
     </>}
     <Text style={[styles.label, { color: theme.textSecondary }]}>{txn.type === 'income' ? 'Received via' : 'Paid via'}</Text>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>{modes.map(mode => <Pressable key={mode} disabled={saving} onPress={() => setPaymentMode(mode)} style={[styles.chip, { borderColor: paymentMode === mode ? theme.accent : theme.border, backgroundColor: paymentMode === mode ? theme.accentSoft : theme.surfaceRaised }]}><Text style={{ color: theme.textPrimary }}>{mode}</Text></Pressable>)}</ScrollView>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>{modes.map(mode => <MotionPressable selectionFeedback={paymentMode !== mode} key={mode} disabled={saving} onPress={() => setPaymentMode(mode)} style={[styles.chip, { borderColor: paymentMode === mode ? theme.accent : theme.border, backgroundColor: paymentMode === mode ? theme.accentSoft : theme.surfaceRaised }]}><Text style={{ color: theme.textPrimary }}>{mode}</Text></MotionPressable>)}</ScrollView>
     <Text style={[styles.label, { color: theme.textSecondary }]}>Date</Text>
     <DateField value={date} onChange={setDate} disabled={saving} />
     {txn.upiRefNumber && <Text style={{ color: theme.textSecondary, marginTop: 16 }}>Reference: {txn.upiRefNumber}</Text>}

@@ -32,7 +32,7 @@ export default function DateField({ value, onChange, disabled = false }: { value
         {picker}
         <View style={styles.actions}>
           <Pressable onPress={() => setOpen(false)}><Text style={{ color: theme.textSecondary }}>Cancel</Text></Pressable>
-          <Pressable onPress={() => { onChange(localDate(draft)); setOpen(false); }}><Text style={{ color: theme.accent, fontWeight: '700' }}>Done</Text></Pressable>
+          <Pressable onPress={() => { if (localDate(draft) !== value) feedback.selection(); onChange(localDate(draft)); setOpen(false); }}><Text style={{ color: theme.accent, fontWeight: '700' }}>Done</Text></Pressable>
         </View>
       </View></View>
     </Modal>

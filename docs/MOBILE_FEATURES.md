@@ -10,6 +10,9 @@ The UI, automatic-capture, and transaction-history work started on three separat
 - `app/src/lib/motion.ts`: fast opacity/transform animations, reduced-motion handling, and haptic helpers.
 - `app/src/screens/HomeScreen.tsx`: subtle dashboard feedback and full-history entry.
 - `app/src/screens/AddTransactionSheet.tsx`: picker/button motion, save/error feedback, and the calendar integration.
+- `app/src/screens/HistoryScreen.tsx`: grouped history, search, filters, and picker press feedback.
+- `app/src/screens/EditTransactionScreen.tsx`: transaction editing with save/error and picker feedback.
+- `app/src/components/DateField.tsx`: native calendar with selection feedback and reduced-motion modal fallback.
 - `app/src/navigation/AppNavigator.tsx`: native stack transitions for history/edit, with reduced-motion fallback.
 - `app/package.json` and `app/package-lock.json`: Expo-compatible native dependencies.
 - `app/docs/motion-release-checklist.md`: physical-device release checks.
@@ -25,6 +28,8 @@ The UI, automatic-capture, and transaction-history work started on three separat
 
 ## Verification limits
 
+Combined automated verification passed: 61 frontend tests, 34 backend tests, 40 native parser checks, app/frontend/backend TypeScript checks, backend build, and Android/iOS JavaScript bundle exports. The capture module also passed Android Kotlin/Java compilation and merged-manifest checks. Full history loading includes paginated database reads, with a regression covering more than 1,000 transactions.
+
 Automated checks do not prove real bank-notification delivery, gesture feel, haptic output, Android permission behavior, or app behavior after force-stop. No physical device is connected in this workspace. A JavaScript bundle export does not compile custom Android modules.
 
 No lint configuration existed in the project when this work began. Type checking, regression tests, and bundle checks are recorded separately from linting and device checks.
@@ -37,5 +42,6 @@ No lint configuration existed in the project when this work began. Type checking
 - [Native date picker](https://github.com/react-native-datetimepicker/datetimepicker)
 - [Expo custom native code](https://docs.expo.dev/workflow/customizing/)
 - [Android notification listener](https://developer.android.com/reference/android/service/notification/NotificationListenerService)
+- [Supabase paginated reads](https://supabase.com/docs/reference/javascript/using-modifiers-range)
 
 Optional future improvements, not implemented: undo for swipe deletion and CSV export from filtered history.
