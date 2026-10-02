@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Transaction } from '../types/transaction';
 import { Category } from '../data/categories';
-import { saveTransaction, loadTransactions, deleteTransaction as removeTransaction, deleteAllTransactions } from '../services/transactions';
+import { saveTransaction, updateTransaction as persistTransactionUpdate, TransactionEdit, loadTransactions, deleteTransaction as removeTransaction, deleteAllTransactions } from '../services/transactions';
 import { saveCategory, removeCategory } from '../services/categories';
 
 interface AppState {
@@ -12,6 +12,7 @@ interface AppState {
   setTransactions: (txns: Transaction[]) => void;
   setCategories: (categories: Category[]) => void;
   addTransaction: (t: Transaction) => Promise<void>;
+  updateTransaction: (id: string, type: Transaction['type'], patch: TransactionEdit) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addCategory: (c: Omit<Category, 'id'>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
@@ -32,6 +33,14 @@ export const useStore = create<AppState>((set, get) => ({
     }
     const saved = await saveTransaction(txn);
     if (get().userId === userId) set((state) => ({ transactions: [saved, ...state.transactions] }));
+  },
+
+  updateTransaction: async (id, type, patch) => {
+    const { userId, transactions } = get();
+    const txn = transactions.find(row => row.id === id && row.type === type);
+    if (!userId || !txn || txn.userId !== userId) throw new Error('Transaction unavailable.');
+    const saved = await persistTransactionUpdate(txn, patch);
+    if (get().userId === userId) set(state => ({ transactions: state.transactions.map(row => row.id === id && row.type === type ? saved : row) }));
   },
 
   deleteTransaction: async (id) => {

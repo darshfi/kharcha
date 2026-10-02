@@ -14,6 +14,7 @@ import { useStore } from '../store/useStore';
 import { useAuth } from '../auth/AuthContext';
 import { parseUPISMS } from '../lib/parseUPISMS';
 import { parsedSMSToTransaction } from '../lib/mappers';
+import DateField from '../components/DateField';
 import { localDate, isValidDate } from '../lib/dates';
 import { guessCategory } from '../data/categories';
 import { ParsedSMS, PaymentMode } from '../types/transaction';
@@ -214,13 +215,7 @@ export default function AddTransactionSheet() {
         />
 
         <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Date</Text>
-        <TextInput
-          style={[styles.input, { color: theme.textPrimary, backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
-          value={date}
-          onChangeText={setDate}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={theme.textTertiary}
-        />
+        <DateField value={date} onChange={setDate} disabled={saving} />
 
         <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Or paste UPI SMS</Text>
         <TextInput

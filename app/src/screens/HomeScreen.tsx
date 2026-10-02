@@ -1,12 +1,16 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 import { useStore } from '../store/useStore';
 import TransactionRow from '../components/TransactionRow';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
 import { getInsights } from '../lib/insights';
 
 export default function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { theme } = useTheme();
   const { transactions, categories, deleteTransaction } = useStore();
 
@@ -59,7 +63,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent transactions</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="View all transactions" onPress={() => navigation.navigate('History')}><Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent transactions <Text style={{ fontSize: 14, color: theme.accent }}>View all →</Text></Text></Pressable>
         {recent.length === 0 ? (
           <View style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={{ color: theme.textSecondary }}>No transactions yet.</Text>

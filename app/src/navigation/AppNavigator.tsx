@@ -9,7 +9,14 @@ import CategoriesScreen from '../screens/CategoriesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import AddTransactionSheet from '../screens/AddTransactionSheet';
 
-const Tab = createBottomTabNavigator();
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { RootStackParamList, TabParamList } from './types';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import HistoryScreen from '../screens/HistoryScreen';
+import EditTransactionScreen from '../screens/EditTransactionScreen';
+
+const Tab = createBottomTabNavigator<TabParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function TabIcon({ label, focused, color }: { label: string; focused: boolean; color: string }) {
   const symbols: Record<string, string> = {
@@ -44,7 +51,7 @@ function TabIcon({ label, focused, color }: { label: string; focused: boolean; c
   );
 }
 
-export default function AppNavigator() {
+function Tabs() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -78,4 +85,14 @@ export default function AppNavigator() {
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );
+}
+
+export default function AppNavigator() {
+  const reducedMotion = useReducedMotion();
+  const { theme } = useTheme();
+  return <Stack.Navigator screenOptions={{ headerStyle: { backgroundColor: theme.bg }, headerTintColor: theme.textPrimary, contentStyle: { backgroundColor: theme.bg }, animation: reducedMotion ? 'none' : 'slide_from_right' }}>
+    <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
+    <Stack.Screen name="History" component={HistoryScreen} options={{ title: 'Transaction history' }} />
+    <Stack.Screen name="EditTransaction" component={EditTransactionScreen} options={{ title: 'Edit transaction' }} />
+  </Stack.Navigator>;
 }
