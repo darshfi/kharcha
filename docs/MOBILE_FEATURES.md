@@ -36,6 +36,10 @@ Automated checks do not prove real bank-notification delivery, gesture feel, hap
 
 No lint configuration existed in the project when this work began. Type checking, regression tests, and bundle checks are recorded separately from linting and device checks.
 
+## Development startup cache
+
+On 2026-10-03, the already-running Metro server served untransformed Worklets startup functions after the animation dependencies were installed. This caused `installUnpackers` to read missing `__initData.code`. Restarting Metro with a cleared cache restored all six startup unpackers' transformed initialization data in the actual Android development bundle. `npm run start:dev` now clears that cache on startup. This fix does not change native dependencies or require another APK build. Physical-device reopening remains necessary to confirm the end-to-end result.
+
 ## Official references used during review
 
 - [Reanimated custom layout animations](https://docs.swmansion.com/react-native-reanimated/docs/layout-animations/custom-animations/)
