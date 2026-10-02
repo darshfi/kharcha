@@ -1,0 +1,28 @@
+// Expo's compileOnly modules-core dependency can expose newer AndroidX APIs
+// than a library's runtime graph. Gradle 9 requires these graphs to agree.
+// Keep the shared families at versions already requested by this SDK 57 app.
+def sharedAndroidX = [
+  'androidx.core:core:1.18.0',
+  'androidx.core:core-ktx:1.18.0',
+  'androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0',
+  'androidx.lifecycle:lifecycle-runtime-ktx:2.10.0',
+  'org.jetbrains:annotations:23.0.0'
+]
+
+// Optional verified local repository for machines whose Gradle HTTP downloads stall.
+def localMaven = System.getenv('KHARCHA_LOCAL_MAVEN')
+gradle.beforeProject { project ->
+  if (localMaven && new File(localMaven).isDirectory()) {
+    project.buildscript.repositories.maven { url = uri(localMaven) }
+    project.repositories.maven { url = uri(localMaven) }
+  }
+  ['com.android.library', 'com.android.application'].each { pluginId ->
+    project.plugins.withId(pluginId) {
+      sharedAndroidX.each { notation ->
+        project.dependencies.constraints.add('implementation', notation) {
+          because('Align Expo compile-only APIs with Android runtime dependencies')
+        }
+      }
+    }
+  }
+}
