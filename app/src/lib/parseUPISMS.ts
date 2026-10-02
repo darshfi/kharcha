@@ -1,4 +1,5 @@
 import { ParsedSMS } from '../types/transaction';
+import { isValidDate, localDate } from './dates';
 
 export function parseUPISMS(sms: string): ParsedSMS {
   const s = sms.replace(/\s+/g, ' ').trim();
@@ -26,7 +27,7 @@ export function parseUPISMS(sms: string): ParsedSMS {
     merchant = toMatch ? toMatch[1] : '';
   }
 
-  let date = new Date().toISOString().split('T')[0];
+  let date = localDate();
   const dateMatch = s.match(/(\d{1,2})[-\/ ]([A-Za-z]{3})[A-Za-z]*[-\/ ,]*(\d{2,4})/);
   if (dateMatch) {
     const months: { [key: string]: number } = {
@@ -34,9 +35,17 @@ export function parseUPISMS(sms: string): ParsedSMS {
       jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
     };
     const day = parseInt(dateMatch[1]);
-    const month = months[dateMatch[2].toLowerCase()] || 1;
+    const month = months[dateMatch[2].toLowerCase()];
     const year = parseInt(dateMatch[3]) < 100 ? 2000 + parseInt(dateMatch[3]) : parseInt(dateMatch[3]);
-    date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const candidate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    if (isValidDate(candidate)) date = candidate;
+  } else {
+    const numericDate = s.match(/\b(\d{1,2})[-/](\d{1,2})[-/](\d{2}|\d{4})\b/);
+    if (numericDate) {
+      const year = Number(numericDate[3]) < 100 ? 2000 + Number(numericDate[3]) : Number(numericDate[3]);
+      const candidate = `${year}-${numericDate[2].padStart(2, '0')}-${numericDate[1].padStart(2, '0')}`;
+      if (isValidDate(candidate)) date = candidate;
+    }
   }
 
   return {

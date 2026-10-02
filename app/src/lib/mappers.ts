@@ -1,17 +1,10 @@
 import { ParsedSMS, Transaction } from '../types/transaction';
 
-function generateId(): string {
-  return (
-    Date.now().toString(36) +
-    Math.random().toString(36).substring(2, 10) +
-    Math.random().toString(36).substring(2, 6)
-  );
-}
-
 export function parsedSMSToTransaction(parsed: ParsedSMS, userId: string): Transaction {
   const now = new Date().toISOString();
   return {
-    id: generateId(),
+    // Supabase assigns the UUID when this draft is saved.
+    id: '',
     userId,
     type: parsed.isCredit ? 'income' : 'expense',
     amount: parsed.amount,
@@ -20,7 +13,7 @@ export function parsedSMSToTransaction(parsed: ParsedSMS, userId: string): Trans
     date: parsed.date,
     time: null,
     transactionType: parsed.transactionType,
-    upiRefNumber: parsed.referenceNumber,
+    upiRefNumber: parsed.referenceNumber === 'NOT_FOUND' ? null : parsed.referenceNumber,
     merchantName: parsed.merchant,
     receiptUrl: null,
     balanceAfter: null,

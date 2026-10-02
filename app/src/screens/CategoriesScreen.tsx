@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 import { useStore } from '../store/useStore';
@@ -11,16 +11,26 @@ export default function CategoriesScreen() {
   const [symbol, setSymbol] = useState('F');
   const [color, setColor] = useState('#0F766E');
 
-  const handleAdd = () => {
+  const [busy, setBusy] = useState(false);
+  const showError = (error: any) => Alert.alert('Could not update your data', error?.message ?? 'Please try again.');
+
+  const handleAdd = async () => {
+    if (busy) return;
     if (!name.trim()) return;
-    if (categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) return;
-    addCategory({
-      id: `cat-${Date.now()}`,
-      symbol: symbol || 'F',
-      name: name.trim(),
-      color,
-    });
-    setName('');
+    if (categories.some((c) => c.name.toLowerCase() === name.trim().toLowerCase())) {
+      Alert.alert('Category already exists', 'Choose another name.');
+      return;
+    }
+    if (!/^#[0-9a-f]{6}$/i.test(color)) {
+      Alert.alert('Invalid colour', 'Enter a colour such as #0F766E.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await addCategory({ symbol: symbol || 'F', name: name.trim(), color });
+      setName('');
+    } catch (error) { showError(error); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -40,7 +50,10 @@ export default function CategoriesScreen() {
               </View>
               <Text style={[styles.rowName, { color: theme.textPrimary }]}>{c.name}</Text>
               {c.name !== 'Others' && (
-                <TouchableOpacity onPress={() => deleteCategory(c.id)}>
+                <TouchableOpacity onPress={() => Alert.alert('Delete category?', 'Existing transactions will become uncategorised.', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Delete', style: 'destructive', onPress: () => { deleteCategory(c.id).catch(showError); } },
+                ])}>
                   <Text style={{ color: theme.textTertiary, fontSize: 18 }}>✕</Text>
                 </TouchableOpacity>
               )}
@@ -83,9 +96,10 @@ export default function CategoriesScreen() {
           <TouchableOpacity
             style={[styles.primaryBtn, { backgroundColor: theme.accent }]}
             onPress={handleAdd}
+            disabled={busy}
           >
             <Text style={{ color: theme.accentContrast, fontWeight: '700', fontSize: 15 }}>
-              Add category
+              {busy ? 'Adding...' : 'Add category'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -94,7 +108,10 @@ export default function CategoriesScreen() {
           <Text style={[styles.label, { color: theme.textSecondary }]}>Data</Text>
           <TouchableOpacity
             style={[styles.secondaryBtn, { borderColor: theme.border }]}
-            onPress={clearAll}
+            onPress={() => Alert.alert('Delete all transactions?', 'This permanently deletes your expenses and income.', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete all', style: 'destructive', onPress: () => { clearAll().catch(showError); } },
+            ])}
           >
             <Text style={{ color: theme.negative, fontWeight: '600' }}>Delete all transactions</Text>
           </TouchableOpacity>

@@ -4,84 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Line, Polyline, Circle, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '../theme/ThemeProvider';
 import { useStore } from '../store/useStore';
+import { getInsights } from '../lib/insights';
 
 function InsightsScreen() {
   const { theme } = useTheme();
   const { transactions, categories } = useStore();
 
-  const now = new Date();
-  const ym = now.toISOString().slice(0, 7);
-  const monthExpenses = transactions.filter((t) => t.date.startsWith(ym) && t.type === 'expense');
-  const monthIncome = transactions.filter((t) => t.date.startsWith(ym) && t.type === 'income');
-
-  const totalSpent = monthExpenses.reduce((s, t) => s + t.amount, 0);
-  const totalIncome = monthIncome.reduce((s, t) => s + t.amount, 0);
-
-  const byCategory: Record<string, number> = {};
-  monthExpenses.forEach((t) => {
-    byCategory[t.categoryId || ''] = (byCategory[t.categoryId || ''] || 0) + t.amount;
-  });
-  const categoryRows = Object.entries(byCategory)
-    .sort((a, b) => b[1] - a[1])
-    .map(([id, amount]) => ({
-      category: categories.find((c) => c.id === id),
-      amount,
-    }));
-
-  const byMode: Record<string, number> = {};
-  monthIncome.forEach((t) => {
-    const mode = t.paymentMode || 'Other';
-    byMode[mode] = (byMode[mode] || 0) + t.amount;
-  });
-  const modeRows = Object.entries(byMode).sort((a, b) => b[1] - a[1]);
-
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    const key = d.toISOString().split('T')[0];
-    const label = d.toLocaleDateString('en-IN', { weekday: 'short' }).slice(0, 2);
-    const value = transactions
-      .filter((t) => t.date === key && t.type === 'expense')
-      .reduce((s, t) => s + t.amount, 0);
-    return { key, label, value };
-  });
-  const maxDay = Math.max(1, ...days.map((d) => d.value));
-
-  // Monthly daily expenses for the full month
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const monthDays = Array.from({ length: daysInMonth }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth(), i + 1);
-    const key = d.toISOString().split('T')[0];
-    const label = (i + 1).toString();
-    const value = transactions
-      .filter((t) => t.date === key && t.type === 'expense')
-      .reduce((s, t) => s + t.amount, 0);
-    return { key, label, value };
-  });
-  const maxMonthDay = Math.max(1, ...monthDays.map((d) => d.value));
-
-  // Average expense per day
-  const avgExpensePerDay = totalSpent / daysInMonth;
-
-  // Average expense per category (only categories with expenses)
-  const categoriesWithExpenses = categoryRows.filter((r) => r.amount > 0);
-  const avgExpensePerCategory = categoriesWithExpenses.length > 0
-    ? totalSpent / categoriesWithExpenses.length
-    : 0;
-
-  const chartDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    const key = d.toISOString().split('T')[0];
-    const expenseValue = transactions
-      .filter((t) => t.date === key && t.type === 'expense')
-      .reduce((s, t) => s + t.amount, 0);
-    const incomeValue = transactions
-      .filter((t) => t.date === key && t.type === 'income')
-      .reduce((s, t) => s + t.amount, 0);
-    return { key, expense: expenseValue, income: incomeValue };
-  });
-  const maxValue = Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)));
+  const {
+    totalSpent, totalIncome, categoryRows, modeRows, days, chartDays, monthDays,
+    weekSpent, maxDay, maxMonthDay, maxValue, avgExpensePerDay, avgExpensePerCategory,
+  } = getInsights(transactions, categories);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.bg }]} edges={['top']}>
@@ -107,29 +39,31 @@ function InsightsScreen() {
             ))}
           </View>
           <Text style={[styles.footnote, { color: theme.textSecondary }]}>
-            ₹{totalSpent.toLocaleString('en-IN', { maximumFractionDigits: 0 })} this week
+            ₹{weekSpent.toLocaleString('en-IN', { maximumFractionDigits: 0 })} this week
           </Text>
         </View>
 
         {/* Monthly expenses chart */}
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>This month (daily)</Text>
-          <View style={styles.chart}>
-            {monthDays.map((d, i) => (
-              <View key={d.key} style={styles.barWrap}>
-                <View
-                  style={[
-                    styles.bar,
-                    {
-                      height: Math.max((d.value / maxMonthDay) * 100, d.value > 0 ? 4 : 1),
-                      backgroundColor: d.value > 0 ? theme.accent : theme.track,
-                    },
-                  ]}
-                />
-                <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{d.label}</Text>
-              </View>
-            ))}
-          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={[styles.chart, { width: monthDays.length * 24 }]}>
+              {monthDays.map((d) => (
+                <View key={d.key} style={styles.barWrap}>
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: Math.max((d.value / maxMonthDay) * 100, d.value > 0 ? 4 : 1),
+                        backgroundColor: d.value > 0 ? theme.accent : theme.track,
+                      },
+                    ]}
+                  />
+                  <Text style={[styles.barLabel, { color: theme.textSecondary }]}>{d.label}</Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
           <Text style={[styles.footnote, { color: theme.textSecondary }]}>
             ₹{totalSpent.toLocaleString('en-IN', { maximumFractionDigits: 0 })} this month
           </Text>
@@ -163,8 +97,12 @@ function InsightsScreen() {
               <Svg width={160} height={160} viewBox="0 0 42 42">
                 {(() => {
                   let cumulativePercent = 0;
-                  return categoryRows.map(({ category, amount }) => {
+                  return categoryRows.map(({ id, category, amount }) => {
                     const percent = totalSpent > 0 ? (amount / totalSpent) * 100 : 0;
+                    if (percent >= 99.999) {
+                      cumulativePercent += percent;
+                      return <Circle key={id} cx={21} cy={21} r={15} fill={category?.color || theme.accent} />;
+                    }
                     const startAngle = (cumulativePercent / 100) * 360;
                     cumulativePercent += percent;
                     const endAngle = (cumulativePercent / 100) * 360;
@@ -178,7 +116,7 @@ function InsightsScreen() {
                     const d = `M 21 21 L ${x1} ${y1} A 15 15 0 ${largeArc} 1 ${x2} ${y2} Z`;
                     return (
                       <Path
-                        key={category?.id}
+                        key={id}
                         d={d}
                         fill={category?.color || theme.accent}
                         stroke={theme.surface}
@@ -189,11 +127,11 @@ function InsightsScreen() {
                 })()}
               </Svg>
               <View style={styles.pieLegend}>
-                {categoryRows.map(({ category, amount }) => (
-                  <View key={`${category?.id}-${amount}`} style={styles.legendRow}>
+                {categoryRows.map(({ id, category, amount }) => (
+                  <View key={id} style={styles.legendRow}>
                     <View style={[styles.legendDot, { backgroundColor: category?.color || theme.accent }]} />
                     <Text style={{ color: theme.textPrimary, fontSize: 12, flex: 1 }}>
-                      {category?.name}
+                      {category?.name ?? 'Uncategorised'}
                     </Text>
                     <Text style={{ color: theme.textTertiary, fontSize: 12 }}>
                       {totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0}%
@@ -208,28 +146,9 @@ function InsightsScreen() {
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>Expense vs Income (7 days)</Text>
           {(() => {
-            const chartDays = Array.from({ length: 7 }, (_, i) => {
-              const d = new Date();
-              d.setDate(d.getDate() - (6 - i));
-              const key = d.toISOString().split('T')[0];
-              const expenseValue = transactions
-                .filter((t) => t.date === key && t.type === 'expense')
-                .reduce((s, t) => s + t.amount, 0);
-              const incomeValue = transactions
-                .filter((t) => t.date === key && t.type === 'income')
-                .reduce((s, t) => s + t.amount, 0);
-            return { key, expense: expenseValue, income: incomeValue };
-          });
-            const maxValue = Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)));
-            const width = 320;
-            const height = 120;
-            const padding = 20;
-            const chartWidth = width - 2 * padding;
-            const chartHeight = height - 2 * padding;
-
             return (
               <View style={styles.lineChartContainer}>
-                <Svg width={320} height={120}>
+                <Svg width="100%" height={120} viewBox="0 0 320 120">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Line
                       key={`grid-${i}`}
@@ -252,24 +171,14 @@ function InsightsScreen() {
                       fill={theme.textTertiary}
                       alignmentBaseline="middle"
                     >
-                      {i === 0 ? Math.round(Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))).toLocaleString() : i === 4 ? '0' : Math.round(Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income))) * (1 - i / 4)).toLocaleString()}
+                      {i === 0 ? Math.round(maxValue).toLocaleString() : i === 4 ? '0' : Math.round(maxValue * (1 - i / 4)).toLocaleString()}
                     </SvgText>
                   ))}
-                  <Polyline
-                    points={Array.from({ length: 7 }).map((_, i) => {
-                      const x = 20 + (i / 6) * 280;
-                      const y = 20 + 80 - (chartDays[i].expense / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80;
-                      return `${x},${y}`;
-                    }).join(' ')}
-                    fill="none"
-                    stroke={theme.negative}
-                    strokeWidth={2}
-                  />
                   <Polyline
                     key="expense-line"
                     points={chartDays.map((d, i) => {
                       const x = 20 + (i / 6) * 280;
-                      const y = 20 + 80 - (d.expense / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80;
+                      const y = 20 + 80 - (d.expense / maxValue) * 80;
                       return `${x},${y}`;
                     }).join(' ')}
                     fill="none"
@@ -280,7 +189,7 @@ function InsightsScreen() {
                     key="income-line"
                     points={chartDays.map((d, i) => {
                       const x = 20 + (i / 6) * 280;
-                      const y = 20 + 80 - (d.income / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80;
+                      const y = 20 + 80 - (d.income / maxValue) * 80;
                       return `${x},${y}`;
                     }).join(' ')}
                     fill="none"
@@ -292,14 +201,14 @@ function InsightsScreen() {
                       <Circle
                         key={`expense-dot-${d.key}`}
                         cx={20 + (i / 6) * 280}
-                        cy={20 + 80 - (d.expense / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80}
+                        cy={20 + 80 - (d.expense / maxValue) * 80}
                         r={3}
                         fill={theme.negative}
                       />
                       <Circle
                         key={`income-dot-${d.key}`}
                         cx={20 + (i / 6) * 280}
-                        cy={20 + 80 - (d.income / Math.max(1, ...chartDays.map((d) => Math.max(d.expense, d.income)))) * 80}
+                        cy={20 + 80 - (d.income / maxValue) * 80}
                         r={3}
                         fill={theme.positive}
                       />
@@ -461,7 +370,6 @@ const styles = StyleSheet.create({
   avgValue: {
     fontSize: 16,
     fontWeight: '700',
-    fontFamily: 'BricolageGrotesque_700Bold',
     fontVariant: ['tabular-nums'],
   },
 });

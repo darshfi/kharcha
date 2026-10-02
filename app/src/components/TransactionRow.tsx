@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, Animated, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, Animated, PanResponder, Alert } from 'react-native';
 import { Transaction } from '../types/transaction';
 import { Category } from '../data/categories';
 import { useTheme } from '../theme/ThemeProvider';
@@ -7,12 +7,15 @@ import { useTheme } from '../theme/ThemeProvider';
 interface Props {
   transaction: Transaction;
   category?: Category;
-  onDelete: () => void;
+  onDelete: () => Promise<void>;
 }
 
 export default function TransactionRow({ transaction, category, onDelete }: Props) {
   const { theme } = useTheme();
   const pan = useRef(new Animated.Value(0)).current;
+  const deleting = useRef(false);
+  const onDeleteRef = useRef(onDelete);
+  onDeleteRef.current = onDelete;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -22,12 +25,12 @@ export default function TransactionRow({ transaction, category, onDelete }: Prop
         if (gs.dx < 0) pan.setValue(gs.dx);
       },
       onPanResponderRelease: (_, gs) => {
-        if (gs.dx < -100) {
-          Animated.timing(pan, {
-            toValue: -400,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(onDelete);
+        if (gs.dx < -100 && !deleting.current) {
+          deleting.current = true;
+          Animated.spring(pan, { toValue: 0, useNativeDriver: true }).start();
+          onDeleteRef.current().catch((error) => {
+            Alert.alert('Could not delete transaction', error?.message ?? 'Please try again.');
+          }).finally(() => { deleting.current = false; });
         } else {
           Animated.spring(pan, { toValue: 0, useNativeDriver: true }).start();
         }

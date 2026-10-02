@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAuth } from '../auth/AuthContext';
@@ -41,7 +41,7 @@ export default function SettingsScreen() {
           </Text>
           <TouchableOpacity
             style={[styles.signOutBtn, { borderColor: theme.border }]}
-            onPress={signOut}
+            onPress={() => { signOut().catch((error) => Alert.alert('Could not sign out', error?.message ?? 'Please try again.')); }}
           >
             <Text style={{ color: theme.negative, fontWeight: '600' }}>Sign out</Text>
           </TouchableOpacity>

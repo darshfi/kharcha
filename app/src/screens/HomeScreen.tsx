@@ -4,24 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 import { useStore } from '../store/useStore';
 import TransactionRow from '../components/TransactionRow';
-import { Transaction } from '../types/transaction';
+import { getInsights } from '../lib/insights';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
   const { transactions, categories, deleteTransaction } = useStore();
 
-  const now = new Date();
-  const ym = now.toISOString().slice(0, 7);
-  const monthTxns = transactions.filter((t) => t.date.startsWith(ym) && t.type === 'expense');
-  const monthIncome = transactions.filter((t) => t.date.startsWith(ym) && t.type === 'income');
-
-  const totalSpent = monthTxns.reduce((s, t) => s + t.amount, 0);
-  const totalIncome = monthIncome.reduce((s, t) => s + t.amount, 0);
-  const dailyAvg = totalSpent / now.getDate();
-  const biggest = monthTxns.reduce((m: Transaction | null, t: Transaction) => (!m || t.amount > m.amount ? t : m), null as Transaction | null);
+  const { totalBalance, totalSpent, totalIncome, avgExpensePerDay: dailyAvg } = getInsights(transactions, categories);
 
   const recent = [...transactions]
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
     .slice(0, 15);
 
   return (
@@ -29,14 +21,22 @@ export default function HomeScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <Text style={[styles.heading, { color: theme.textPrimary }]}>Kharcha</Text>
 
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>Total balance</Text>
+          <Text style={[styles.bigAmount, { color: totalBalance < 0 ? theme.negative : theme.textPrimary }]}>
+            {totalBalance < 0 ? '−' : ''}₹{Math.abs(totalBalance).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>All recorded income minus expenses</Text>
+        </View>
+
         <View style={styles.metricsRow}>
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.card, styles.metricCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>Daily avg</Text>
             <Text style={[styles.bigAmount, { color: theme.textPrimary }]}>
               ₹{Math.round(dailyAvg).toLocaleString('en-IN')}
             </Text>
           </View>
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.card, styles.metricCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>This month</Text>
             <Text style={[styles.bigAmount, { color: theme.textPrimary }]}>
               ₹{totalSpent.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
@@ -55,18 +55,6 @@ export default function HomeScreen() {
           {totalIncome > 0 && (
             <Text style={[styles.net, { color: totalIncome >= totalSpent ? theme.positive : theme.negative }]}>
               {totalIncome >= totalSpent ? 'Saved' : 'Overspent'} ₹{Math.abs(totalIncome - totalSpent).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-            </Text>
-          )}
-        </View>
-
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Biggest expense</Text>
-          <Text style={[styles.amount, { color: theme.textPrimary }]}>
-            {biggest ? `₹${biggest.amount.toLocaleString('en-IN')}` : '—'}
-          </Text>
-          {biggest && (
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-              {biggest.merchantName || biggest.description || 'Unknown'}
             </Text>
           )}
         </View>
@@ -107,11 +95,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   card: {
-    flex: 1,
+    flexShrink: 0,
     borderRadius: 14,
     borderWidth: 1,
     padding: 18,
     marginBottom: 16,
+  },
+  metricCard: {
+    flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    marginBottom: 0,
   },
   label: {
     fontSize: 14,

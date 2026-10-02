@@ -32,12 +32,15 @@ export default function AuthScreen() {
     }
     setLoading(true);
     setError(null);
-    const { error } = isLogin
-      ? await signIn(email.trim(), password)
-      : await signUp(email.trim(), password);
-    if (error) setError(error);
-    else if (!isLogin) setSignUpSent(true);
-    setLoading(false);
+    try {
+      const { error } = isLogin
+        ? await signIn(email.trim(), password)
+        : await signUp(email.trim(), password);
+      if (error) setError(error);
+      else if (!isLogin) setSignUpSent(true);
+    } catch (error: any) {
+      setError(error?.message ?? 'Could not connect. Please try again.');
+    } finally { setLoading(false); }
   };
 
   const handleForgotPassword = async () => {
@@ -47,10 +50,13 @@ export default function AuthScreen() {
     }
     setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-    if (error) setError(error.message);
-    else setResetSent(true);
-    setLoading(false);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      if (error) setError(error.message);
+      else setResetSent(true);
+    } catch (error: any) {
+      setError(error?.message ?? 'Could not connect. Please try again.');
+    } finally { setLoading(false); }
   };
 
   return (
@@ -123,6 +129,8 @@ export default function AuthScreen() {
               onPress={() => {
                 setIsLogin(!isLogin);
                 setError(null);
+                setResetSent(false);
+                setSignUpSent(false);
               }}
             >
               <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>
