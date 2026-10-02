@@ -3,11 +3,13 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   Alert,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
+import MotionPressable from '../components/MotionPressable';
+import { enter, exit, feedback, useMotionDisabled } from '../lib/motion';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 import { useStore } from '../store/useStore';
@@ -29,6 +31,7 @@ const MODES: { label: string; symbol: string }[] = [
 
 export default function AddTransactionSheet() {
   const { theme } = useTheme();
+  const reduced = useMotionDisabled();
   const { categories, addTransaction } = useStore();
   const { user } = useAuth();
   const [type, setType] = useState<'expense' | 'income'>('expense');
@@ -49,21 +52,23 @@ export default function AddTransactionSheet() {
     }
   }, [categories, categoryId]);
 
+  const reportError = (message: string) => { feedback.error(); setError(message); };
+
   const handleSave = async () => {
     if (savingRef.current) return;
     setError(null);
     const amt = Number(amount);
     if (!Number.isFinite(amt) || amt <= 0) {
-      setError('Enter an amount greater than zero.');
+      reportError('Enter an amount greater than zero.');
       return;
     }
-    if (!user) { setError('Please sign in again.'); return; }
-    if (!isValidDate(date)) { setError('Enter a valid date as YYYY-MM-DD.'); return; }
+    if (!user) { reportError('Please sign in again.'); return; }
+    if (!isValidDate(date)) { reportError('Enter a valid date as YYYY-MM-DD.'); return; }
     if (type === 'expense' && !categories.some(category => category.id === categoryId)) {
-      setError('Choose a category first.');
+      reportError('Choose a category first.');
       return;
     }
-    if (type === 'income' && !description.trim()) { setError('Enter the income source.'); return; }
+    if (type === 'income' && !description.trim()) { reportError('Enter the income source.'); return; }
 
     const txn = parsedSMSToTransaction({
       amount: amt, merchant: description.trim(), date,
@@ -83,9 +88,10 @@ export default function AddTransactionSheet() {
       setDescription('');
       setSmsText('');
       setParsedSMS(null);
+      feedback.success();
       Alert.alert('Saved', `Your ${type} has been saved.`);
     } catch (error: any) {
-      setError(error?.message ?? 'Could not save this transaction. Please try again.');
+      reportError(error?.message ?? 'Could not save this transaction. Please try again.');
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -95,7 +101,7 @@ export default function AddTransactionSheet() {
   const handleParseSMS = () => {
     const parsed = parseUPISMS(smsText);
     if (!Number.isFinite(parsed.amount) || parsed.amount <= 0) {
-      setError('Could not find an amount. Check the SMS and try again.');
+      reportError('Could not find an amount. Check the SMS and try again.');
       return;
     }
     setError(null);
@@ -107,6 +113,7 @@ export default function AddTransactionSheet() {
     setPaymentMode(/NEFT|IMPS|RTGS/i.test(smsText) ? 'Bank transfer' : 'UPI');
     setCategoryId(guessCategory(parsed.merchant, smsText, categories)?.id ?? '');
     setSmsText('');
+    feedback.success();
   };
 
   return (
@@ -115,11 +122,13 @@ export default function AddTransactionSheet() {
         <Text style={[styles.heading, { color: theme.textPrimary }]}>Add transaction</Text>
 
         <View style={[styles.segment, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
-          <TouchableOpacity
+          <MotionPressable
             style={[
               styles.segmentItem,
               type === 'expense' && { backgroundColor: theme.accent },
             ]}
+            selectionFeedback={type !== 'expense'}
+            accessibilityState={{ selected: type === 'expense' }}
             onPress={() => setType('expense')}
           >
             <Text
@@ -131,12 +140,14 @@ export default function AddTransactionSheet() {
             >
               Expense
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </MotionPressable>
+          <MotionPressable
             style={[
               styles.segmentItem,
               type === 'income' && { backgroundColor: theme.accent },
             ]}
+            selectionFeedback={type !== 'income'}
+            accessibilityState={{ selected: type === 'income' }}
             onPress={() => setType('income')}
           >
             <Text
@@ -148,7 +159,7 @@ export default function AddTransactionSheet() {
             >
               Income
             </Text>
-          </TouchableOpacity>
+          </MotionPressable>
         </View>
 
         <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Amount (₹)</Text>
@@ -162,42 +173,46 @@ export default function AddTransactionSheet() {
         />
 
         {type === 'expense' && (
-          <>
+          <Animated.View entering={reduced ? undefined : enter} exiting={reduced ? undefined : exit}>
             <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>Category</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
               {categories.map((c) => (
-                <TouchableOpacity
+                <MotionPressable
                   key={c.id}
                   style={[
                     styles.chip,
                     { borderColor: categoryId === c.id ? c.color : theme.border, backgroundColor: categoryId === c.id ? `${c.color}22` : theme.surfaceRaised },
                   ]}
+                  selectionFeedback={categoryId !== c.id}
+                  accessibilityState={{ selected: categoryId === c.id }}
                   onPress={() => setCategoryId(c.id)}
                 >
                   <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
                     {c.name}
                   </Text>
-                </TouchableOpacity>
+                </MotionPressable>
               ))}
             </ScrollView>
-          </>
+          </Animated.View>
         )}
 
         <Text style={[styles.fieldLabel, { color: theme.textSecondary }]}>{type === 'income' ? 'Received via' : 'Paid via'}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
           {MODES.map((m) => (
-            <TouchableOpacity
+            <MotionPressable
               key={m.label}
               style={[
                 styles.chip,
                 { borderColor: paymentMode === m.label ? theme.accent : theme.border, backgroundColor: paymentMode === m.label ? theme.accentSoft : theme.surfaceRaised },
               ]}
+              selectionFeedback={paymentMode !== m.label}
+              accessibilityState={{ selected: paymentMode === m.label }}
               onPress={() => setPaymentMode(m.label as PaymentMode)}
             >
               <Text style={{ color: theme.textPrimary, fontSize: 13 }}>
                 {m.label}
               </Text>
-            </TouchableOpacity>
+            </MotionPressable>
           ))}
         </ScrollView>
 
@@ -233,12 +248,12 @@ export default function AddTransactionSheet() {
           numberOfLines={3}
         />
         {smsText.length > 0 && (
-          <TouchableOpacity
+          <MotionPressable
             style={[styles.secondaryBtn, { borderColor: theme.border }]}
             onPress={handleParseSMS}
           >
             <Text style={{ color: theme.textPrimary, fontWeight: '600' }}>Parse SMS</Text>
-          </TouchableOpacity>
+          </MotionPressable>
         )}
 
         {parsedSMS && (
@@ -246,8 +261,8 @@ export default function AddTransactionSheet() {
             Review the details before saving. Reference: {parsedSMS.referenceNumber === 'NOT_FOUND' ? 'not found' : parsedSMS.referenceNumber}
           </Text>
         )}
-        {error && <Text style={{ color: theme.negative, marginTop: 12 }}>{error}</Text>}
-        <TouchableOpacity
+        {error && <Animated.Text entering={reduced ? undefined : enter} exiting={reduced ? undefined : exit} accessibilityRole="alert" style={{ color: theme.negative, marginTop: 12 }}>{error}</Animated.Text>}
+        <MotionPressable
           style={[styles.primaryBtn, { backgroundColor: theme.accent }]}
           onPress={handleSave}
           disabled={saving}
@@ -255,7 +270,7 @@ export default function AddTransactionSheet() {
           <Text style={{ color: theme.accentContrast, fontWeight: '700', fontSize: 15 }}>
             {saving ? 'Saving...' : `Save ${type}`}
           </Text>
-        </TouchableOpacity>
+        </MotionPressable>
       </ScrollView>
     </SafeAreaView>
   );

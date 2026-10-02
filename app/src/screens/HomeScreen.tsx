@@ -1,4 +1,6 @@
 import React from 'react';
+import Animated from 'react-native-reanimated';
+import { enter, useMotionDisabled } from '../lib/motion';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
@@ -8,6 +10,7 @@ import { getInsights } from '../lib/insights';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
+  const reduced = useMotionDisabled();
   const { transactions, categories, deleteTransaction } = useStore();
 
   const { totalBalance, totalSpent, totalIncome, avgExpensePerDay: dailyAvg } = getInsights(transactions, categories);
@@ -21,13 +24,13 @@ export default function HomeScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <Text style={[styles.heading, { color: theme.textPrimary }]}>Kharcha</Text>
 
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Animated.View entering={reduced ? undefined : enter} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>Total balance</Text>
-          <Text style={[styles.bigAmount, { color: totalBalance < 0 ? theme.negative : theme.textPrimary }]}>
+          <Animated.Text key={totalBalance} entering={reduced ? undefined : enter} style={[styles.bigAmount, { color: totalBalance < 0 ? theme.negative : theme.textPrimary }]}>
             {totalBalance < 0 ? '−' : ''}₹{Math.abs(totalBalance).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-          </Text>
+          </Animated.Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>All recorded income minus expenses</Text>
-        </View>
+        </Animated.View>
 
         <View style={styles.metricsRow}>
           <View style={[styles.card, styles.metricCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -44,7 +47,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Animated.View entering={reduced ? undefined : enter} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>Income vs Spend</Text>
           <Text style={[styles.amount, { color: theme.positive }]}>
             +₹{totalIncome.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
@@ -57,7 +60,7 @@ export default function HomeScreen() {
               {totalIncome >= totalSpent ? 'Saved' : 'Overspent'} ₹{Math.abs(totalIncome - totalSpent).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
             </Text>
           )}
-        </View>
+        </Animated.View>
 
         <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent transactions</Text>
         {recent.length === 0 ? (
