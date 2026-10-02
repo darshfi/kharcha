@@ -30,6 +30,8 @@ The UI, automatic-capture, and transaction-history work started on three separat
 
 Combined automated verification passed: 61 frontend tests, 34 backend tests, 40 native parser checks, app/frontend/backend TypeScript checks, backend build, and Android/iOS JavaScript bundle exports. The capture module also passed Android Kotlin/Java compilation and merged-manifest checks. Full history loading includes paginated database reads, with a regression covering more than 1,000 transactions.
 
+The combined Android ARM64 debug app also built successfully with the calendar, Reanimated, Gesture Handler, and capture module. A debug development build needs the development server (`npm run start:dev` in `app`); it is not a standalone release build. iOS native compilation was not verified in this Linux environment.
+
 Automated checks do not prove real bank-notification delivery, gesture feel, haptic output, Android permission behavior, or app behavior after force-stop. No physical device is connected in this workspace. A JavaScript bundle export does not compile custom Android modules.
 
 No lint configuration existed in the project when this work began. Type checking, regression tests, and bundle checks are recorded separately from linting and device checks.
