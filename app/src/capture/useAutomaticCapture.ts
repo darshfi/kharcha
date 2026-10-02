@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import { supabase } from '../auth/supabase';
 import { captureNative } from './native';
 import { CaptureSyncError, syncCaptureQueue } from './importQueue';
-import { setCaptureSyncError } from './syncStatus';
+import { captureNeedsRefresh, captureRefreshVersion, markCaptureRefreshed, setCaptureSyncError } from './syncStatus';
 
 /** Mount once within AuthProvider; pass null until the current account's data is ready. */
 export function useAutomaticCapture(userId: string | null, onImported: () => void | Promise<void>) {
@@ -17,16 +17,21 @@ export function useAutomaticCapture(userId: string | null, onImported: () => voi
     const sync = async () => {
       if (!userId || !current || syncing || AppState.currentState !== 'active') return;
       syncing = true;
-      let committed = false;
       try {
-        await syncCaptureQueue(native, supabase, userId, () => current, () => { committed = true; });
+        await syncCaptureQueue(native, supabase, userId, () => current);
         if (current) setCaptureSyncError(userId, null);
       } catch (error) {
         if (current) setCaptureSyncError(userId, error instanceof CaptureSyncError ? error.message : 'Could not sync alerts safely. They remain queued on this device.');
       } finally {
         // A later RPC/ACK failure must not hide an earlier committed ledger row.
-        if (committed && current) {
-          try { await callback.current(); } catch { /* Normal account reload UI owns errors. */ }
+        if (captureNeedsRefresh(userId) && current) {
+          const version = captureRefreshVersion(userId);
+          try {
+            await callback.current();
+            if (current) markCaptureRefreshed(userId, version);
+          } catch {
+            if (current) setCaptureSyncError(userId, 'Saved alerts need a ledger refresh. The app will retry while open.');
+          }
         }
         syncing = false;
       }

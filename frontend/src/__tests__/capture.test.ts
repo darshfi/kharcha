@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { syncCaptureQueue } from '../../../app/src/capture/importQueue';
 import type { CaptureBridge, CaptureCandidate } from '../../../app/src/capture/types';
+import { captureNeedsRefresh, captureRefreshVersion, markCaptureCommitted, markCaptureRefreshed } from '../../../app/src/capture/syncStatus';
 
 const candidate: CaptureCandidate = {
   userId: 'user-a', eventId: 'a'.repeat(64), sourcePackage: 'com.phonepe.app', postedAt: 1790942400000,
@@ -85,5 +86,23 @@ describe('durable notification import', () => {
     f.client.rpc.mockResolvedValue({ data: {} as any, error: null });
     await expect(syncCaptureQueue(f.native, f.client, 'user-a')).rejects.toThrow('could not be confirmed');
     expect(f.native.acknowledge).not.toHaveBeenCalled();
+  });
+  it('retains a refresh obligation after ACK until the ledger refresh succeeds', async () => {
+    const f = fixture();
+    await syncCaptureQueue(f.native, f.client, 'user-a');
+    expect(f.queue()).toEqual([]);
+    expect(captureNeedsRefresh('user-a')).toBe(true);
+    // A failed fetch deliberately does not mark any version refreshed.
+    const version = captureRefreshVersion('user-a');
+    markCaptureRefreshed('user-a', version);
+    expect(captureNeedsRefresh('user-a')).toBe(false);
+  });
+  it('a commit during an in-flight ledger refresh requires another refresh', () => {
+    markCaptureCommitted('refresh-race-user');
+    const snapshot = captureRefreshVersion('refresh-race-user');
+    markCaptureCommitted('refresh-race-user');
+    markCaptureRefreshed('refresh-race-user', snapshot);
+    expect(captureNeedsRefresh('refresh-race-user')).toBe(true);
+    expect(captureNeedsRefresh('unrelated-user')).toBe(false);
   });
 });
