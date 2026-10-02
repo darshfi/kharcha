@@ -82,12 +82,12 @@ const Budgets: React.FC = () => {
         </section>
       )}
 
-      {budgets.length > 0 && budgets.some(b => b.currentSpend / b.monthlyLimit >= 0.8) && (
+      {budgets.length > 0 && budgets.some(b => b.currentSpend / b.monthlyLimit >= b.alertThreshold) && (
         <section className="rounded-2xl border border-warning/30 bg-warning-soft p-4">
           <p className="text-[13px] text-warning">
-            {budgets.filter(b => b.currentSpend / b.monthlyLimit >= 0.8).length} budget
-            {budgets.filter(b => b.currentSpend / b.monthlyLimit >= 0.8).length > 1 ? 's are' : ' is'} over
-            80% spent
+            {budgets.filter(b => b.currentSpend / b.monthlyLimit >= b.alertThreshold).length} budget
+            {budgets.filter(b => b.currentSpend / b.monthlyLimit >= b.alertThreshold).length > 1 ? 's have' : ' has'} reached
+            the alert threshold
           </p>
         </section>
       )}

@@ -71,7 +71,7 @@ export const CategoryProvider = ({ children }: { children: React.ReactNode }) =>
     if (!user) throw new Error('Not authenticated');
     try {
       const { id: _id, createdAt: _c, ...changes } = category;
-      const payload: Record<string, unknown> = { ...toDbCategory(changes, user.id) };
+      const payload: Record<string, unknown> = { ...toDbCategory(changes, user.id, true) };
       delete payload.id;
       delete payload.user_id;
       delete payload.created_at;

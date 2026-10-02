@@ -48,17 +48,12 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Start server
-const server = app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-});
-
-// Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
+// Importing the app for tests must not bind the production port.
+if (require.main === module) {
+  const server = app.listen(PORT, () => {
+    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   });
-});
+  process.on('SIGTERM', () => server.close());
+}
 
 export default app;

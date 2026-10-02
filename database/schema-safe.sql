@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   description TEXT,
   date DATE NOT NULL,
   time TIME,
+  payment_mode TEXT DEFAULT 'Other',
   transaction_type TEXT CHECK (transaction_type IN ('manual', 'upi')) DEFAULT 'manual',
   upi_ref_number TEXT,
   merchant_name TEXT,
@@ -141,38 +142,61 @@ CREATE TRIGGER update_budgets_updated_at BEFORE UPDATE ON budgets
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to calculate budget current_spend
+-- Run in Supabase SQL Editor. Safe to re-run; preserves transactions.
+-- Recalculate both the old and new categories when expenses move.
 CREATE OR REPLACE FUNCTION calculate_budget_spend()
 RETURNS TRIGGER AS $$
 DECLARE
-  budget_record RECORD;
+  old_user UUID;
+  old_category UUID;
+  new_user UUID;
+  new_category UUID;
 BEGIN
-  FOR budget_record IN
-    SELECT id, category_id, user_id, month_year
-    FROM budgets
-    WHERE user_id = COALESCE(NEW.user_id, OLD.user_id)
-      AND category_id = COALESCE(NEW.category_id, OLD.category_id)
-  LOOP
-    UPDATE budgets
-    SET current_spend = (
-      SELECT COALESCE(SUM(amount), 0)
-      FROM expenses
-      WHERE user_id = budget_record.user_id
-        AND category_id = budget_record.category_id
-        AND TO_CHAR(date, 'YYYY-MM') = budget_record.month_year
-        AND status = 'confirmed'
-    )
-    WHERE id = budget_record.id;
-  END LOOP;
+  IF TG_OP <> 'INSERT' THEN
+    old_user := OLD.user_id;
+    old_category := OLD.category_id;
+  END IF;
+  IF TG_OP <> 'DELETE' THEN
+    new_user := NEW.user_id;
+    new_category := NEW.category_id;
+  END IF;
 
-  RETURN COALESCE(NEW, OLD);
+  UPDATE budgets b
+  SET current_spend = COALESCE((
+    SELECT SUM(e.amount) FROM expenses e
+    WHERE e.user_id = b.user_id AND e.category_id = b.category_id
+      AND TO_CHAR(e.date, 'YYYY-MM') = b.month_year AND e.status = 'confirmed'
+  ), 0)
+  WHERE (b.user_id = old_user AND b.category_id = old_category)
+     OR (b.user_id = new_user AND b.category_id = new_category);
+  RETURN NULL; -- AFTER triggers ignore their return value.
 END;
 $$ LANGUAGE plpgsql;
 
--- Drop and recreate budget trigger
 DROP TRIGGER IF EXISTS update_budget_on_expense_change ON expenses;
 CREATE TRIGGER update_budget_on_expense_change
-AFTER INSERT OR UPDATE OR DELETE ON expenses
-FOR EACH ROW EXECUTE FUNCTION calculate_budget_spend();
+  AFTER INSERT OR UPDATE OR DELETE ON expenses
+  FOR EACH ROW EXECUTE FUNCTION calculate_budget_spend();
+
+-- A budget created after its expenses must include that existing spending.
+-- Recompute on updates too, including category/month edits and client writes.
+CREATE OR REPLACE FUNCTION initialize_budget_spend()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.current_spend := COALESCE((
+    SELECT SUM(e.amount) FROM expenses e
+    WHERE e.user_id = NEW.user_id AND e.category_id = NEW.category_id
+      AND TO_CHAR(e.date, 'YYYY-MM') = NEW.month_year AND e.status = 'confirmed'
+  ), 0);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS initialize_budget_current_spend ON budgets;
+CREATE TRIGGER initialize_budget_current_spend
+  BEFORE INSERT OR UPDATE ON budgets
+  FOR EACH ROW EXECUTE FUNCTION initialize_budget_spend();
+
 
 -- =====================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES

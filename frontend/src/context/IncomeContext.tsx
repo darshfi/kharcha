@@ -70,7 +70,7 @@ export const IncomeProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) throw new Error('Not authenticated');
     try {
       const { id: _id, createdAt: _c, updatedAt: _u, ...changes } = income;
-      const payload: Record<string, unknown> = { ...toDbIncome(changes, user.id) };
+      const payload: Record<string, unknown> = { ...toDbIncome(changes, user.id, true) };
       delete payload.id;
       delete payload.user_id;
       delete payload.created_at;

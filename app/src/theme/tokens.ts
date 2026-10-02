@@ -1,0 +1,43 @@
+export const darkTheme = {
+  bg: '#0d1412',
+  surface: '#16201d',
+  surfaceRaised: '#1e2825',
+  border: '#26332f',
+  textPrimary: '#e8f0ed',
+  textSecondary: '#93a39d',
+  textTertiary: '#5f6f6a',
+  accent: '#2dd4bf',
+  accentHover: '#5eead4',
+  accentSoft: 'rgba(45, 212, 191, 0.14)',
+  accentContrast: '#062521',
+  positive: '#4ade80',
+  positiveSoft: 'rgba(74, 222, 128, 0.14)',
+  negative: '#fb923c',
+  negativeSoft: 'rgba(251, 146, 60, 0.14)',
+  warning: '#fbbf24',
+  warningSoft: 'rgba(251, 191, 36, 0.14)',
+  track: '#1a2421',
+};
+
+export const lightTheme = {
+  bg: '#f1f4f2',
+  surface: '#ffffff',
+  surfaceRaised: '#f8faf9',
+  border: '#dce3e0',
+  textPrimary: '#14211e',
+  textSecondary: '#5f6f6a',
+  textTertiary: '#8b9590',
+  accent: '#0f766e',
+  accentHover: '#0d5f58',
+  accentSoft: 'rgba(15, 118, 110, 0.1)',
+  accentContrast: '#ffffff',
+  positive: '#15803d',
+  positiveSoft: 'rgba(21, 128, 61, 0.12)',
+  negative: '#c2410c',
+  negativeSoft: 'rgba(194, 65, 12, 0.12)',
+  warning: '#e9a23b',
+  warningSoft: 'rgba(233, 162, 59, 0.12)',
+  track: '#e8ebe9',
+};
+
+export type Theme = typeof darkTheme;

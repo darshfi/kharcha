@@ -19,8 +19,9 @@ const Register: React.FC = () => {
     setNotice(null);
     setBusy(true);
     try {
-      await register(email, password, fullName);
-      navigate('/');
+      const signedIn = await register(email, password, fullName);
+      if (signedIn) navigate('/');
+      else setNotice('Account created. Check your inbox to confirm your email, then sign in.');
     } catch (err: any) {
       setError(err?.message ?? 'Could not create your account');
     } finally {

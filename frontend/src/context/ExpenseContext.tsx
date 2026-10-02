@@ -82,7 +82,7 @@ export const ExpenseProvider = ({ children }: { children: React.ReactNode }) => 
       // toDbExpense strips `id`/`user_id` (they're not updatable) and any
       // key that isn't a real column.
       const { id: _id, userId: _userId, createdAt: _c, updatedAt: _u, ...changes } = expense;
-      const payload = { ...toDbExpense(changes, user.id) };
+      const payload = { ...toDbExpense(changes, user.id, true) };
       delete payload.id;
       delete payload.user_id;
       delete payload.created_at;
