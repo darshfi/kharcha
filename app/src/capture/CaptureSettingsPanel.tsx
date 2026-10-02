@@ -31,7 +31,7 @@ const REASONS: Record<string, string> = {
   stale_or_future_alert: 'Old or future alert',
   self_transfer: 'Transfer between own accounts',
   unsupported_format: 'Unsupported notification format',
-  untrusted_sender: 'Unrecognized bank sender in Messages',
+  untrusted_sender: 'Sender skipped by an older app version',
   conflicting_import: 'Conflicting import values — add manually if needed',
 };
 
@@ -94,7 +94,7 @@ export function CaptureSettingsPanel({ userId, onImported }: { userId: string | 
           onValueChange={value => value ? enable() : configure(false, status?.sources ?? [])}
           trackColor={{ true: theme.accent, false: theme.track }} disabled={!userId || !status} />
       </View>
-      <Text style={[styles.copy, secondary]}>Choose apps that send your bank or UPI payment alerts. Messages capture supports recognized bank sender tags; personal conversations and unrecognized senders are skipped.</Text>
+      <Text style={[styles.copy, secondary]}>Choose apps that send your bank or UPI payment alerts. Messages capture accepts completed payment alerts from any sender when the amount, direction and transaction reference are clear.</Text>
       {CAPTURE_SOURCES.map(([source, name]) => <Pressable key={source} accessibilityRole="checkbox"
         accessibilityState={{ checked: status?.sources.includes(source) ?? false }}
         style={styles.source} disabled={!status}

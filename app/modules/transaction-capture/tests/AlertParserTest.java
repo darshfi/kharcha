@@ -46,13 +46,42 @@ public class AlertParserTest {
     skip("Rs.1,234.567 paid UPI Ref 123456789012","unclear_amount");
     check(parse("INR 1,23,456.78 paid UPI Ref 123456789012").amount.equals(new BigDecimal("123456.78")),"Indian number grouping");
     check(parse("INR 123,456.78 paid UPI Ref 123456789012").amount.equals(new BigDecimal("123456.78")),"Western number grouping");
-    check(AlertParser.parseNotification("com.google.android.apps.messaging","John","I paid ₹500 UPI Ref 123456789012",POSTED,TimeZone.getDefault()).reason.equals("untrusted_sender"),"personal Messages payment text rejected");
+    check(AlertParser.parseNotification("com.google.android.apps.messaging","John","I paid ₹500 UPI Ref 123456789012",POSTED,TimeZone.getDefault()).accepted(),"sender names do not restrict completed payment text");
     check(AlertParser.parseNotification("com.google.android.apps.messaging","AD-HDFCBK","Rs.500 debited UPI Ref 123456789012",POSTED,TimeZone.getDefault()).accepted(),"trusted DLT sender accepted");
     check(AlertParser.parseNotification("com.samsung.android.messaging","VM-ICICIB-S","Rs.500 credited UPI Ref 123456789012",POSTED,TimeZone.getDefault()).accepted(),"trusted service sender accepted");
-    check(AlertParser.parseNotification("com.samsung.android.messaging","VM-UNKNOWN","Rs.500 debited UPI Ref 123456789012",POSTED,TimeZone.getDefault()).reason.equals("untrusted_sender"),"unknown DLT sender skipped");
+    check(AlertParser.parseNotification("com.samsung.android.messaging","VM-UNKNOWN","Rs.500 debited UPI Ref 123456789012",POSTED,TimeZone.getDefault()).accepted(),"unknown DLT sender accepted");
     skip("You received Rs.500 voucher. Ref 123456789012","not_completed_payment");
     skip("Your account may be debited Rs.500. Ref 123456789012","not_completed_payment");
     skip("Loan Rs.500 credited. Ref 123456789012","not_completed_payment");
+    // Sanitized fixtures retain the screenshot's bank grammar without personal details.
+    long auPosted=Instant.parse("2026-10-02T20:06:00Z").toEpochMilli();
+    TimeZone zone=TimeZone.getTimeZone("Asia/Kolkata");
+    String auCredit="Credited INR 1.44 to A/c X0000 on 03-OCT-2026 Ref UPI/CR/123456789012/Sample Person. Bal INR 8,546.08.\n-AU Bank";
+    String auDebit="Dr INR 1.00 - AU A/c X0000 03-OCT-2026 UPI/DR/123456789013/Sample Person\nBal INR 8,544.64\nFraud? Call 180012001200/SMS BLOCK UPI to 56767";
+    AlertParser.Result credit=AlertParser.parseNotification("com.google.android.apps.messaging","AD-AUBANK-S",auCredit,auPosted,zone);
+    check(credit.accepted(),"AU credit accepted from new sender");
+    check("income".equals(credit.type) && new BigDecimal("1.44").equals(credit.amount),"AU credit direction and amount");
+    check("123456789012".equals(credit.reference) && "2026-10-03".equals(credit.date),"AU credit reference and date");
+    check(new BigDecimal("8546.08").equals(credit.balance),"AU credit balance separate");
+    AlertParser.Result expense=AlertParser.parseNotification("com.google.android.apps.messaging","Unknown sender",auDebit,auPosted,zone);
+    check(expense.accepted(),"AU Dr alert accepted");
+    check("expense".equals(expense.type) && new BigDecimal("1.00").equals(expense.amount),"AU debit direction and amount");
+    check("123456789013".equals(expense.reference) && "2026-10-03".equals(expense.date),"AU debit reference and date");
+    check(new BigDecimal("8544.64").equals(expense.balance),"AU debit balance separate");
+    check(AlertParser.parseNotification("com.samsung.android.messaging",null,auCredit,auPosted,zone).accepted(),"missing sender allowed");
+    check(AlertParser.parseNotification("com.google.android.apps.messaging","Cashback offers",auDebit,auPosted,zone).accepted(),"sender title does not alter payment grammar");
+    check(AlertParser.parse("Cr INR 1.44 UPI/CR/123456789012",auPosted,zone).accepted(),"Cr shorthand accepted");
+    check("unclear_direction".equals(AlertParser.parse("Credited INR 1.44 UPI/DR/123456789012",auPosted,zone).reason),"conflicting UPI direction rejected");
+    check("missing_or_conflicting_reference".equals(AlertParser.parse("Dr INR 1.44 UPI/DR/123456789012 UPI/DR/123456789013",auPosted,zone).reason),"conflicting slash references rejected");
+    check("unclear_direction".equals(AlertParser.parse("Dr Smith invoice INR 1.44 Ref 123456789012",auPosted,zone).reason),"Dr name is not a debit");
+    check(!AlertParser.parseNotification("com.google.android.apps.messaging","Custom app notification","Messages is doing work in the background",auPosted,zone).accepted(),"Messages service activity is not a payment");
+    check(AlertParser.parse("Dr INR 250. UPI/DR/123456789012",auPosted,zone).accepted(),"amount sentence punctuation accepted");
+    skip("Rs.1.2.3. paid UPI Ref 123456789012","unclear_amount");
+    skip("Rs.1.. paid UPI Ref 123456789012","unclear_amount");
+    AlertParser.Result paidYou=parse("Sample Person paid you ₹250 UPI Ref 123456789012");
+    check(paidYou.accepted() && "income".equals(paidYou.type),"paid you is income, not expense");
+    skip("Sample Person paid you ₹250 NA","missing_or_conflicting_reference");
+    check("expense".equals(parse("You paid Sample Person ₹250 UPI Ref 123456789012").type),"you paid remains expense");
     System.out.println("AlertParser: "+tests+" checks passed");
   }
 }

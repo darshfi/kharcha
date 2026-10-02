@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   TextInput,
   StyleSheet,
   ScrollView,
-  Alert,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 import MotionPressable from '../components/MotionPressable';
@@ -20,6 +19,8 @@ import DateField from '../components/DateField';
 import { localDate, isValidDate } from '../lib/dates';
 import { guessCategory } from '../data/categories';
 import { ParsedSMS, PaymentMode } from '../types/transaction';
+import SavedToast, { SavedNotice } from '../components/SavedToast';
+import { useIsFocused } from '@react-navigation/native';
 
 const MODES: { label: string; symbol: string }[] = [
   { label: 'UPI', symbol: 'U' },
@@ -46,6 +47,11 @@ export default function AddTransactionSheet() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const [savedNotice, setSavedNotice] = useState<SavedNotice | null>(null);
+  const noticeId = useRef(0);
+  const focused = useIsFocused();
+  const dismissNotice = useCallback(() => setSavedNotice(null), []);
+  useEffect(() => { if (!focused) dismissNotice(); }, [focused, dismissNotice]);
 
   useEffect(() => {
     if (!categories.some(category => category.id === categoryId)) {
@@ -57,6 +63,7 @@ export default function AddTransactionSheet() {
 
   const handleSave = async () => {
     if (savingRef.current) return;
+    dismissNotice();
     setError(null);
     const amt = Number(amount);
     if (!Number.isFinite(amt) || amt <= 0) {
@@ -90,7 +97,8 @@ export default function AddTransactionSheet() {
       setSmsText('');
       setParsedSMS(null);
       feedback.success();
-      Alert.alert('Saved', `Your ${type} has been saved.`);
+      setSavedNotice({ id: ++noticeId.current, title: type === 'income' ? 'Income saved' : 'Expense saved',
+        detail: `₹${amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · Added to your transactions` });
     } catch (error: any) {
       reportError(error?.message ?? 'Could not save this transaction. Please try again.');
     } finally {
@@ -267,6 +275,7 @@ export default function AddTransactionSheet() {
           </Text>
         </MotionPressable>
       </ScrollView>
+      <SavedToast notice={savedNotice} onDismiss={dismissNotice} />
     </SafeAreaView>
   );
 }

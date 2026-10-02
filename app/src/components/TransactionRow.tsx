@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   deleteHint: { justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 },
   container: {
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     marginHorizontal: 16,
     marginVertical: 4,
     overflow: 'hidden',
@@ -120,7 +120,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
     gap: 12,
   },
   dot: {
@@ -140,6 +141,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '600',
+    letterSpacing: -0.15,
   },
   tag: {
     fontSize: 11,
@@ -151,11 +153,15 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    marginTop: 2,
+    marginTop: 4,
+    lineHeight: 18,
   },
   amount: {
     fontSize: 16,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
+    letterSpacing: -0.3,
+    textAlign: 'right',
+    flexShrink: 0,
   },
 });

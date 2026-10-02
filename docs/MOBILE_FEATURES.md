@@ -51,3 +51,11 @@ On 2026-10-03, the already-running Metro server served untransformed Worklets st
 - [Supabase paginated reads](https://supabase.com/docs/reference/javascript/using-modifiers-range)
 
 Optional future improvements, not implemented: undo for swipe deletion and CSV export from filtered history.
+
+## October 3 capture and presentation fixes
+
+Unknown sender/bank names no longer block clear payment alerts from selected source apps. Messages use their body rather than their sender title. The native parser supports abbreviated Dr/Cr INR alerts and UPI/DR or UPI/CR slash references, validates direction agreement, separates balance amounts, and recognizes “paid you” as income. Missing/conflicting references and ambiguous text still skip. The expanded sanitized parser suite passes 61 checks. Old skips cannot be replayed because raw messages are not stored; use manual entry or Paste SMS for them. Install the rebuilt custom Android app to use the native correction.
+
+Add transaction now uses `SavedToast.tsx`: a compact non-blocking confirmation with dismiss, accessibility-aware timeout, visible success text and reduced-motion feedback. Home and transaction rows received modest typography/spacing/border polish; colors and recognizable layout remain. The broader rounded mint prototype belongs to the user's personal app and is saved outside this repository in `/home/darsh/projects/exp/personal-app-design`; reusable context is `/home/darsh/projects/exp/PERSONAL_APP_HANDOFF.md`.
+
+App TypeScript and 61 frontend regression tests passed for this update. Physical-device checks remain: large text and long amounts, confirmation placement/announcement and dismissal, real AU Bank debit/credit capture, and old skip counter behavior.

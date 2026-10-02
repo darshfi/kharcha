@@ -31,7 +31,7 @@ export default function HomeScreen() {
 
         <Animated.View entering={reduced ? undefined : enter} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>Total balance</Text>
-          <Animated.Text key={totalBalance} entering={reduced ? undefined : enter} style={[styles.bigAmount, { color: totalBalance < 0 ? theme.negative : theme.textPrimary }]}>
+          <Animated.Text key={totalBalance} entering={reduced ? undefined : enter} style={[styles.bigAmount, styles.balanceAmount, { color: totalBalance < 0 ? theme.negative : theme.textPrimary }]}>
             {totalBalance < 0 ? '−' : ''}₹{Math.abs(totalBalance).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
           </Animated.Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>All recorded income minus expenses</Text>
@@ -67,7 +67,10 @@ export default function HomeScreen() {
           )}
         </Animated.View>
 
-        <MotionPressable accessibilityLabel="View all transactions" onPress={() => navigation.navigate('History')}><Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent transactions <Text style={{ fontSize: 14, color: theme.accent }}>View all →</Text></Text></MotionPressable>
+        <MotionPressable style={styles.sectionHeader} accessibilityLabel="View all transactions" onPress={() => navigation.navigate('History')}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent transactions</Text>
+          <Text style={[styles.sectionLink, { color: theme.accent }]}>View all →</Text>
+        </MotionPressable>
         {recent.length === 0 ? (
           <View style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={{ color: theme.textSecondary }}>No transactions yet.</Text>
@@ -117,14 +120,19 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   label: {
-    fontSize: 14,
-    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 8,
   },
   bigAmount: {
     fontSize: 24,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
     letterSpacing: -0.5,
+  },
+  balanceAmount: {
+    fontSize: 32,
+    letterSpacing: -0.8,
   },
   amount: {
     fontSize: 19,
@@ -139,13 +147,27 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    marginTop: 4,
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: 12,
+    rowGap: 6,
+    marginTop: 12,
+    marginBottom: 14,
+  },
+  sectionLink: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '700',
-    marginTop: 8,
-    marginBottom: 12,
+    letterSpacing: -0.3,
   },
   empty: {
     borderRadius: 14,
