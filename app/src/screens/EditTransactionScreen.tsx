@@ -8,6 +8,8 @@ import DateField from '../components/DateField';
 import { PaymentMode } from '../types/transaction';
 import { TransactionEdit } from '../services/transactions';
 import { isValidDate } from '../lib/dates';
+import MotionPressable from '../components/MotionPressable';
+import { feedback } from '../lib/motion';
 
 const modes: PaymentMode[] = ['UPI', 'Cash', 'Bank transfer', 'Cheque', 'Card / wallet', 'Other'];
 export default function EditTransactionScreen({ route, navigation }: NativeStackScreenProps<RootStackParamList, 'EditTransaction'>) {
@@ -42,8 +44,8 @@ export default function EditTransactionScreen({ route, navigation }: NativeStack
       patch.categoryId = categoryId;
     }
     busy.current = true; setSaving(true);
-    try { await updateTransaction(txn.id, txn.type, patch); if (useStore.getState().userId === owner) navigation.goBack(); }
-    catch (e: any) { setError(e?.message ?? 'Could not save changes. Please try again.'); }
+    try { await updateTransaction(txn.id, txn.type, patch); if (useStore.getState().userId === owner) { feedback.success(); navigation.goBack(); } }
+    catch (e: any) { feedback.error(); setError(e?.message ?? 'Could not save changes. Please try again.'); }
     finally { busy.current = false; setSaving(false); }
   };
   if (!txn || owner !== userId) return <View style={{ flex: 1, padding: 24, backgroundColor: theme.bg }}><Text style={{ color: theme.textSecondary }}>This transaction is no longer available.</Text></View>;
@@ -67,7 +69,7 @@ export default function EditTransactionScreen({ route, navigation }: NativeStack
     <DateField value={date} onChange={setDate} disabled={saving} />
     {txn.upiRefNumber && <Text style={{ color: theme.textSecondary, marginTop: 16 }}>Reference: {txn.upiRefNumber}</Text>}
     {!!error && <Text accessibilityRole="alert" style={{ color: theme.negative, marginTop: 16 }}>{error}</Text>}
-    <Pressable accessibilityRole="button" disabled={saving} style={[styles.button, { backgroundColor: theme.accent }]} onPress={save}><Text style={{ color: theme.accentContrast, fontWeight: '700', fontSize: 15 }}>{saving ? 'Saving...' : 'Save changes'}</Text></Pressable>
+    <MotionPressable accessibilityRole="button" disabled={saving} style={[styles.button, { backgroundColor: theme.accent }]} onPress={save}><Text style={{ color: theme.accentContrast, fontWeight: '700', fontSize: 15 }}>{saving ? 'Saving...' : 'Save changes'}</Text></MotionPressable>
   </ScrollView>;
 }
 const styles = StyleSheet.create({ content: { padding: 16, paddingBottom: 40 }, label: { fontSize: 14, marginTop: 20, marginBottom: 8 }, input: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 16 }, chip: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderRadius: 99, marginRight: 8 }, button: { borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 24 } });
