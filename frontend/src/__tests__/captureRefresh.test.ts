@@ -11,6 +11,7 @@ const captured = { ...existing, id: 'captured', description: 'Captured payment' 
 let resolveExpense: (value: any) => void;
 beforeEach(() => {
   const query = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), not: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(), range: vi.fn().mockReturnThis(),
     then: (resolve: any, reject: any) => new Promise(done => { resolveExpense = done; }).then(resolve, reject) };
   const incomeQuery = { ...query, then: (resolve: any) => Promise.resolve({ data: [], error: null }).then(resolve) };
   database.from.mockImplementation(table => table === 'expenses' ? query : incomeQuery);

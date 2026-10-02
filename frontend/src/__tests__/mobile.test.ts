@@ -21,7 +21,7 @@ const queries: Record<string, any> = {};
 const draft = () => ({ ...parsedSMSToTransaction(parseUPISMS('Rs.250 paid to Cafe on 2-Oct-2026'), 'user-a'), categoryId, paymentMode: 'Cash' as const, status: 'confirmed' as const });
 function makeQuery(data: any) {
   return {
-    select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), range: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(), delete: vi.fn().mockReturnThis(), upsert: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: Array.isArray(data) ? data[0] : data, error: null }),
     then: (resolve: any, reject: any) => Promise.resolve({ data, error: null }).then(resolve, reject),
@@ -60,6 +60,16 @@ describe('mobile persistence', () => {
   it('reports fetch failures rather than showing an empty ledger', async () => {
     queries.expenses.then = (resolve: any) => Promise.resolve({ data: null, error: new Error('Offline') }).then(resolve);
     await expect(loadTransactions('user-a')).rejects.toThrow('Offline');
+  });
+  it('loads full history beyond the single-response limit', async () => {
+    const rows = Array.from({ length: 1101 }, (_, index) => ({ ...expense, id: `expense-${index}` }));
+    let start = 0;
+    queries.expenses.range.mockImplementation((from: number) => { start = from; return queries.expenses; });
+    queries.expenses.then = (resolve: any) => Promise.resolve({ data: rows.slice(start, start + 500), error: null }).then(resolve);
+    const saved = await loadTransactions('user-a');
+    expect(saved.filter(row => row.type === 'expense')).toHaveLength(1101);
+    expect(saved.some(row => row.id === 'expense-1100')).toBe(true);
+    expect(queries.expenses.range.mock.calls).toEqual([[0, 499], [500, 999], [1000, 1499]]);
   });
   it('does not add a transaction when the database rejects its save', async () => {
     queries.expenses.single.mockResolvedValue({ data: null, error: new Error('Write rejected') });

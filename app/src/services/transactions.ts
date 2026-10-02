@@ -27,14 +27,24 @@ export function fromIncome(row: any): Transaction {
   };
 }
 
-export async function loadTransactions(userId: string): Promise<Transaction[]> {
-  const [expenses, incomes] = await Promise.all([
-    supabase.from('expenses').select('*').eq('user_id', userId).order('date', { ascending: false }),
-    supabase.from('incomes').select('*').eq('user_id', userId).order('date', { ascending: false }),
-  ]);
-  if (expenses.error) throw expenses.error;
-  if (incomes.error) throw incomes.error;
-  return [...(expenses.data ?? []).map(fromExpense), ...(incomes.data ?? []).map(fromIncome)]
+export async function loadTransactions(userId: string, options: { capturedOnly?: boolean } = {}): Promise<Transaction[]> {
+  // Supabase caps a single response; history must include older pages too.
+  const readTable = async (table: 'expenses' | 'incomes') => {
+    const rows: any[] = [];
+    const pageSize = 500;
+    for (let start = 0; ; start += pageSize) {
+      let query = supabase.from(table).select('*').eq('user_id', userId)
+        .order('date', { ascending: false }).order('created_at', { ascending: false }).order('id', { ascending: false });
+      if (options.capturedOnly) query = query.not('capture_event_id', 'is', null);
+      const { data, error } = await query.range(start, start + pageSize - 1);
+      if (error) throw error;
+      rows.push(...(data ?? []));
+      if (!data || data.length < pageSize) break;
+    }
+    return [...new Map(rows.map(row => [row.id, row])).values()];
+  };
+  const [expenses, incomes] = await Promise.all([readTable('expenses'), readTable('incomes')]);
+  return [...expenses.map(fromExpense), ...incomes.map(fromIncome)]
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 }
 
