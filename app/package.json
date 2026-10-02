@@ -5,7 +5,9 @@
   "scripts": {
     "start": "expo start",
     "start:clean": "expo start --clear",
-    "android": "expo start --android",
+    "android": "expo run:android",
+    "android:build": "expo run:android",
+    "start:dev": "expo start --dev-client",
     "ios": "expo start --ios"
   },
   "dependencies": {
@@ -16,6 +18,8 @@
     "@tanstack/react-query": "~5.104.0",
     "expo": "~57.0.25",
     "expo-constants": "~57.0.19",
+    "expo-dev-client": "~57.0.19",
+    "expo-modules-core": "~57.0.19",
     "react": "^19.3.0",
     "react-native": "0.86.0",
     "react-native-safe-area-context": "^5.10.0",
