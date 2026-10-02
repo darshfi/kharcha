@@ -1,5 +1,8 @@
 import React, { useRef } from 'react';
-import { View, Text, StyleSheet, Animated, PanResponder, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
+import { enter, exit, itemLayout, pressSpring, feedback, useMotionDisabled } from '../lib/motion';
 import { Transaction } from '../types/transaction';
 import { Category } from '../data/categories';
 import { useTheme } from '../theme/ThemeProvider';
@@ -8,44 +11,68 @@ interface Props {
   transaction: Transaction;
   category?: Category;
   onDelete: () => Promise<void>;
+  onPress?: () => void;
 }
 
-export default function TransactionRow({ transaction, category, onDelete }: Props) {
+export default function TransactionRow({ transaction, category, onDelete, onPress }: Props) {
   const { theme } = useTheme();
-  const pan = useRef(new Animated.Value(0)).current;
+  const pan = useSharedValue(0);
+  const scale = useSharedValue(1);
+  const crossed = useSharedValue(false);
+  const reduced = useMotionDisabled();
   const deleting = useRef(false);
-  const onDeleteRef = useRef(onDelete);
-  onDeleteRef.current = onDelete;
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gs) =>
-        Math.abs(gs.dx) > 10 && Math.abs(gs.dx) > Math.abs(gs.dy),
-      onPanResponderMove: (_, gs) => {
-        if (gs.dx < 0) pan.setValue(gs.dx);
-      },
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dx < -100 && !deleting.current) {
-          deleting.current = true;
-          Animated.spring(pan, { toValue: 0, useNativeDriver: true }).start();
-          onDeleteRef.current().catch((error) => {
-            Alert.alert('Could not delete transaction', error?.message ?? 'Please try again.');
-          }).finally(() => { deleting.current = false; });
-        } else {
-          Animated.spring(pan, { toValue: 0, useNativeDriver: true }).start();
-        }
-      },
+  const remove = async () => {
+    if (deleting.current) return;
+    deleting.current = true;
+    try {
+      await onDelete();
+      feedback.success();
+    } catch (error: any) {
+      feedback.error();
+      Alert.alert('Could not delete transaction', error?.message ?? 'Please try again.');
+    } finally { deleting.current = false; }
+  };
+  const open = () => { if (!deleting.current) onPress?.(); };
+  const swipe = Gesture.Pan()
+    .activeOffsetX([-12, 12]).failOffsetY([-10, 10])
+    .onUpdate((event) => {
+      pan.value = Math.max(-140, Math.min(0, event.translationX));
+      if (pan.value <= -100 && !crossed.value) {
+        crossed.value = true;
+        runOnJS(feedback.snap)();
+      } else if (pan.value > -100) crossed.value = false;
     })
-  ).current;
+    .onEnd(() => { if (pan.value <= -100) runOnJS(remove)(); })
+    .onFinalize(() => {
+      pan.value = reduced ? 0 : withTiming(0, { duration: 180 });
+      crossed.value = false;
+    });
+  const tap = Gesture.Tap().maxDistance(10)
+    .onBegin(() => { if (onPress) scale.value = reduced ? 1 : withSpring(0.985, pressSpring); })
+    .onFinalize(() => { scale.value = reduced ? 1 : withSpring(1, pressSpring); })
+    .onEnd((_event, success) => {
+    if (success && onPress) runOnJS(open)();
+  });
+  const moving = useAnimatedStyle(() => ({ transform: [{ translateX: pan.value }, { scale: scale.value }] }));
+  const reveal = useAnimatedStyle(() => ({ opacity: Math.min(1, -pan.value / 100) }));
 
   const isIncome = transaction.type === 'income';
   const dotColor = isIncome ? theme.border : `${category?.color || theme.border}33`;
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+    <Animated.View layout={reduced ? undefined : itemLayout} entering={reduced ? undefined : enter} exiting={reduced ? undefined : exit} style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.deleteHint, reveal]}>
+        <Text style={{ color: theme.negative, fontWeight: '600' }}>Delete</Text>
+      </Animated.View>
+      <GestureDetector gesture={Gesture.Exclusive(swipe, tap)}>
       <Animated.View
-        style={[{ transform: [{ translateX: pan }] }]}
-        {...panResponder.panHandlers}
+        style={[{ backgroundColor: theme.surface }, moving]}
+        accessible
+        accessibilityRole={onPress ? 'button' : undefined}
+        accessibilityLabel={`${transaction.description || transaction.merchantName || category?.name || 'Transaction'}, ${transaction.amount} rupees, ${transaction.date}`}
+        accessibilityHint={onPress ? 'Opens transaction. Swipe left to delete.' : 'Swipe left to delete.'}
+        accessibilityActions={[{ name: 'delete', label: 'Delete transaction' }, ...(onPress ? [{ name: 'activate', label: 'Open transaction' }] : [])]}
+        onAccessibilityAction={({ nativeEvent }) => { if (nativeEvent.actionName === 'delete') void remove(); else if (nativeEvent.actionName === 'activate') open(); }}
       >
         <View style={styles.row}>
           <View style={[styles.dot, { backgroundColor: dotColor }]}>
@@ -55,7 +82,7 @@ export default function TransactionRow({ transaction, category, onDelete }: Prop
           </View>
           <View style={styles.body}>
             <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>
-              {transaction.merchantName || transaction.description || category?.name || 'Unknown'}
+              {transaction.description || transaction.merchantName || category?.name || 'Unknown'}
               {transaction.transactionType === 'upi' && (
                 <Text style={[styles.tag, { color: theme.textSecondary, borderColor: theme.border }]}>
                   {' '}UPI
@@ -76,11 +103,13 @@ export default function TransactionRow({ transaction, category, onDelete }: Prop
           </Text>
         </View>
       </Animated.View>
-    </View>
+      </GestureDetector>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  deleteHint: { justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 },
   container: {
     borderRadius: 12,
     borderWidth: 1,

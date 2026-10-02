@@ -4,6 +4,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../theme/ThemeProvider';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { isValidDate, localDate } from '../lib/dates';
+import MotionPressable from './MotionPressable';
+import { feedback } from '../lib/motion';
 
 export default function DateField({ value, onChange, disabled = false }: { value: string; onChange: (date: string) => void; disabled?: boolean }) {
   const { theme, isDark } = useTheme();
@@ -14,16 +16,16 @@ export default function DateField({ value, onChange, disabled = false }: { value
   const picker = <DateTimePicker value={Platform.OS === 'ios' ? draft : date} mode="date"
     display={Platform.OS === 'ios' ? 'inline' : 'calendar'} themeVariant={isDark ? 'dark' : 'light'}
     onChange={(event, selected) => {
-      if (Platform.OS !== 'ios') { setOpen(false); if (event.type === 'set' && selected) onChange(localDate(selected)); }
+      if (Platform.OS !== 'ios') { setOpen(false); if (event.type === 'set' && selected) { if (localDate(selected) !== value) feedback.selection(); onChange(localDate(selected)); } }
       else if (selected) setDraft(selected);
     }} />;
   return <>
-    <Pressable disabled={disabled} accessibilityRole="button" accessibilityLabel={`Choose date, ${value}`}
+    <MotionPressable disabled={disabled} accessibilityRole="button" accessibilityLabel={`Choose date, ${value}`}
       onPress={() => { setDraft(date); setOpen(true); }}
       style={[styles.field, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
       <Text style={{ color: theme.textPrimary, fontSize: 16 }}>{date.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
       <Text style={{ color: theme.accent }}>Calendar</Text>
-    </Pressable>
+    </MotionPressable>
     {open && Platform.OS !== 'ios' && picker}
     <Modal visible={open && Platform.OS === 'ios'} transparent animationType={reducedMotion ? 'none' : 'slide'} onRequestClose={() => setOpen(false)}>
       <View style={styles.overlay}><View style={[styles.panel, { backgroundColor: theme.surface }]}>

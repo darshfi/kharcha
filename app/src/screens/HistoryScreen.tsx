@@ -5,22 +5,25 @@ import { RootStackParamList } from '../navigation/types';
 import { useStore } from '../store/useStore';
 import { useTheme } from '../theme/ThemeProvider';
 import TransactionRow from '../components/TransactionRow';
+import MotionPressable from '../components/MotionPressable';
+import { feedback, useMotionDisabled } from '../lib/motion';
 import { allHistoryFilters, filterHistory, groupHistory, historyYears } from '../lib/history';
 
 type Choice = { value: string; label: string };
 function Picker({ label, value, choices, onChange }: { label: string; value: string; choices: Choice[]; onChange: (value: string) => void }) {
   const { theme } = useTheme();
+  const reduced = useMotionDisabled();
   const [open, setOpen] = useState(false);
   return <>
-    <Pressable style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]} accessibilityRole="button"
+    <MotionPressable style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]} accessibilityRole="button"
       accessibilityLabel={`${label}: ${choices.find(c => c.value === value)?.label}`} onPress={() => setOpen(true)}>
       <Text style={{ color: theme.textPrimary }}>{choices.find(c => c.value === value)?.label} ▾</Text>
-    </Pressable>
-    <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+    </MotionPressable>
+    <Modal visible={open} transparent animationType={reduced ? 'none' : 'fade'} onRequestClose={() => setOpen(false)}>
       <View style={styles.overlay}><View style={[styles.panel, { backgroundColor: theme.surface }]}>
         <Text style={[styles.title, { color: theme.textPrimary }]}>{label}</Text>
         <FlatList data={choices} keyExtractor={c => c.value} renderItem={({ item }) => <Pressable style={styles.choice}
-          accessibilityRole="button" accessibilityState={{ selected: value === item.value }} onPress={() => { onChange(item.value); setOpen(false); }}>
+          accessibilityRole="button" accessibilityState={{ selected: value === item.value }} onPress={() => { if (value !== item.value) feedback.selection(); onChange(item.value); setOpen(false); }}>
           <Text style={{ color: value === item.value ? theme.accent : theme.textPrimary }}>{item.label}{value === item.value ? ' ✓' : ''}</Text>
         </Pressable>} />
         <Pressable style={styles.choice} onPress={() => setOpen(false)}><Text style={{ color: theme.textSecondary }}>Cancel</Text></Pressable>
@@ -53,10 +56,9 @@ export default function HistoryScreen({ navigation }: NativeStackScreenProps<Roo
     <SectionList sections={sections} keyExtractor={t => `${t.type}:${t.id}`} stickySectionHeadersEnabled
       contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled"
       renderSectionHeader={({ section }) => <Text style={[styles.section, { color: theme.textPrimary, backgroundColor: theme.bg }]}>{section.title}</Text>}
-      renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${item.description || item.merchantName || 'transaction'}`}
-        onPress={() => navigation.navigate('EditTransaction', { transactionId: item.id, transactionType: item.type })}>
-        <TransactionRow transaction={item} category={categories.find(c => c.id === item.categoryId)} onDelete={() => deleteTransaction(item.id)} />
-      </Pressable>}
+      renderItem={({ item }) => <TransactionRow transaction={item} category={categories.find(c => c.id === item.categoryId)}
+        onDelete={() => deleteTransaction(item.id)}
+        onPress={() => navigation.navigate('EditTransaction', { transactionId: item.id, transactionType: item.type })} />}
       ListEmptyComponent={<View style={styles.empty}><Text style={{ color: theme.textSecondary }}>{transactions.length ? 'No transactions match these filters.' : 'No transactions yet.'}</Text>
         {transactions.length > 0 && <Pressable onPress={() => setFilters(allHistoryFilters)}><Text style={{ color: theme.accent, marginTop: 16 }}>Clear filters</Text></Pressable>}</View>} />
   </View>;
