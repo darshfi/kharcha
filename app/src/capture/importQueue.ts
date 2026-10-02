@@ -1,4 +1,5 @@
 import type { CaptureBridge, CaptureCandidate } from './types';
+import { markCaptureCommitted } from './syncStatus';
 
 interface ImportClient {
   auth: { getSession(): Promise<{ data: { session: { user: { id: string } } | null } }> };
@@ -34,6 +35,7 @@ export async function syncCaptureQueue(native: CaptureBridge, client: ImportClie
     if (!result || !['imported', 'duplicate'].includes(result.outcome ?? '')) {
       throw new CaptureSyncError('The import could not be confirmed. The alert remains on this device.');
     }
+    markCaptureCommitted(owner);
     onCommitted?.();
     // ACK the original owner's queue even if a switch occurred during a successful request.
     // The expected-user check above guarantees which ledger accepted it.

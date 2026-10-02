@@ -5,7 +5,7 @@ import { supabase } from '../auth/supabase';
 import { captureNative } from './native';
 import { syncCaptureQueue } from './importQueue';
 import type { CaptureStatus } from './types';
-import { getCaptureSyncError, subscribeCaptureSyncStatus } from './syncStatus';
+import { captureRefreshVersion, getCaptureSyncError, markCaptureRefreshed, subscribeCaptureSyncStatus } from './syncStatus';
 
 export const CAPTURE_SOURCES = [
   ['com.google.android.apps.messaging', 'Google Messages'],
@@ -72,7 +72,11 @@ export function CaptureSettingsPanel({ userId, onImported }: { userId: string | 
       await syncCaptureQueue(captureNative, supabase, userId, undefined, () => { committed = true; });
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not sync alerts.'); }
     finally {
-      if (committed) { try { await onImported?.(); } catch { setError('Saved alerts need a ledger refresh. Reopen the app.'); } }
+      if (committed && onImported) {
+        const version = captureRefreshVersion(userId);
+        try { await onImported(); markCaptureRefreshed(userId, version); }
+        catch { setError('Saved alerts need a ledger refresh. The app will retry while open.'); }
+      }
       refresh(); setBusy(false);
     }
   };
