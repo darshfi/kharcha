@@ -1,3 +1,13 @@
+-- Kharcha bug-fix migration. Run the whole script in Supabase SQL Editor.
+-- Safe to re-run. No transactions are deleted or reclassified.
+BEGIN;
+
+ALTER TABLE public.expenses ADD COLUMN IF NOT EXISTS payment_mode TEXT;
+UPDATE public.expenses SET payment_mode = CASE
+  WHEN transaction_type = 'upi' THEN 'UPI' ELSE 'Other' END
+WHERE payment_mode IS NULL;
+ALTER TABLE public.expenses ALTER COLUMN payment_mode SET DEFAULT 'Other';
+
 -- Run in Supabase SQL Editor. Safe to re-run; preserves transactions.
 -- Recalculate both the old and new categories when expenses move.
 CREATE OR REPLACE FUNCTION calculate_budget_spend()
@@ -60,3 +70,6 @@ SET current_spend = COALESCE((
   WHERE e.user_id = b.user_id AND e.category_id = b.category_id
     AND TO_CHAR(e.date, 'YYYY-MM') = b.month_year AND e.status = 'confirmed'
 ), 0);
+
+NOTIFY pgrst, 'reload schema';
+COMMIT;

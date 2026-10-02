@@ -33,7 +33,7 @@ export async function authMiddleware(
     }
 
     // Extract token (format: "Bearer <token>")
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.match(/^Bearer\s+(\S+)$/i)?.[1];
 
     if (!token) {
       res.status(401).json({ error: 'No token provided' });
@@ -67,7 +67,7 @@ export async function optionalAuthMiddleware(
     const authHeader = req.headers.authorization;
 
     if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
+      const token = authHeader.match(/^Bearer\s+(\S+)$/i)?.[1];
       if (token) {
         const user = await getUserFromToken(token);
         req.user = user;
