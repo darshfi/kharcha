@@ -81,12 +81,12 @@ export const BUDGET_COLUMNS = [
 // Shape helpers — drop any key that is not a real column
 // =====================================================
 
-/** Strip null/undefined and any key not in the allowed column list. */
+/** Omit undefined fields; preserve explicit NULLs when clearing optional values. */
 function pick(source: Record<string, unknown>, allowed: readonly string[]) {
   const out: Record<string, unknown> = {}
   for (const key of allowed) {
     const v = source[key]
-    if (v !== undefined && v !== null) out[key] = v
+    if (v !== undefined) out[key] = v
   }
   return out
 }
@@ -132,7 +132,26 @@ export function currentMonthYear(): string {
 // =====================================================
 
 /** camelCase app row → snake_case DB row. */
-export function toDbExpense(input: Record<string, any>, userId: string) {
+/** Updates must never fill unspecified fields with insert defaults. */
+function mapChanges(input: Record<string, any>, fields: Record<string, string>) {
+  const changes: Record<string, unknown> = {}
+  for (const [key, column] of Object.entries(fields)) {
+    const value = input[key] !== undefined ? input[key] : input[column]
+    if (value !== undefined) {
+      changes[column] = column === 'date' && value != null ? toIsoDate(value)
+        : column === 'time' && value != null ? toDbTime(value) : value
+    }
+  }
+  return changes
+}
+
+export function toDbExpense(input: Record<string, any>, userId: string, partial = false) {
+  if (partial) return mapChanges(input, {
+    amount: 'amount', description: 'description', categoryId: 'category_id', date: 'date', time: 'time',
+    transactionType: 'transaction_type', upiRefNumber: 'upi_ref_number', merchantName: 'merchant_name',
+    receiptUrl: 'receipt_url', balanceAfter: 'balance_after', status: 'status', isRecurring: 'is_recurring',
+    recurringFrequency: 'recurring_frequency',
+  })
   return pick(
     {
       id: input.id,
@@ -182,7 +201,10 @@ export function fromDbExpense(row: Record<string, any>) {
 // CATEGORIES
 // =====================================================
 
-export function toDbCategory(input: Record<string, any>, userId: string) {
+export function toDbCategory(input: Record<string, any>, userId: string, partial = false) {
+  if (partial) return mapChanges(input, {
+    name: 'name', icon: 'icon', color: 'color', isCustom: 'is_custom', isArchived: 'is_archived', orderIndex: 'order_index',
+  })
   return pick(
     {
       id: input.id,
@@ -215,7 +237,10 @@ export function fromDbCategory(row: Record<string, any>) {
 // INCOMES
 // =====================================================
 
-export function toDbIncome(input: Record<string, any>, userId: string) {
+export function toDbIncome(input: Record<string, any>, userId: string, partial = false) {
+  if (partial) return mapChanges(input, {
+    amount: 'amount', source: 'source', paymentMode: 'payment_mode', date: 'date', referenceNumber: 'reference_number',
+  })
   return pick(
     {
       id: input.id,
@@ -247,7 +272,10 @@ export function fromDbIncome(row: Record<string, any>) {
 // BUDGETS
 // =====================================================
 
-export function toDbBudget(input: Record<string, any>, userId: string) {
+export function toDbBudget(input: Record<string, any>, userId: string, partial = false) {
+  if (partial) return mapChanges(input, {
+    categoryId: 'category_id', monthlyLimit: 'monthly_limit', alertThreshold: 'alert_threshold', monthYear: 'month_year',
+  })
   return pick(
     {
       id: input.id,

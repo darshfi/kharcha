@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from './AuthContext';
-import { toDbBudget, fromDbBudget } from '../lib/mappers';
+import { toDbBudget, fromDbBudget, currentMonthYear } from '../lib/mappers';
+import { useExpenses } from './ExpenseContext';
 
 interface Budget {
   id: string;
@@ -34,6 +35,7 @@ const BUDGET_SELECT = `*, expense_categories!inner(name)`;
 
 export const BudgetProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
+  const { expenses } = useExpenses();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -44,7 +46,8 @@ export const BudgetProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from('budgets')
         .select(BUDGET_SELECT)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('month_year', currentMonthYear());
 
       if (error) throw error;
       setBudgets((data ?? []).map(fromDbBudget));
@@ -61,7 +64,7 @@ export const BudgetProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from('budgets')
         .insert([{ ...toDbBudget({ ...budget, currentSpend: 0 }, user.id), user_id: user.id }])
-        .select()
+        .select(BUDGET_SELECT)
         .single();
 
       if (error) throw error;
@@ -76,7 +79,7 @@ export const BudgetProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) throw new Error('Not authenticated');
     try {
       const { id: _id, createdAt: _c, updatedAt: _u, categoryName: _n, ...changes } = budget;
-      const payload: Record<string, unknown> = { ...toDbBudget(changes, user.id) };
+      const payload: Record<string, unknown> = { ...toDbBudget(changes, user.id, true) };
       delete payload.id;
       delete payload.user_id;
       delete payload.created_at;
@@ -91,7 +94,7 @@ export const BudgetProvider = ({ children }: { children: React.ReactNode }) => {
         .update(payload)
         .eq('id', id)
         .eq('user_id', user.id)
-        .select()
+        .select(BUDGET_SELECT)
         .single();
 
       if (error) throw error;
@@ -125,7 +128,8 @@ export const BudgetProvider = ({ children }: { children: React.ReactNode }) => {
       const { data, error } = await supabase
         .from('budgets')
         .select(BUDGET_SELECT)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('month_year', currentMonthYear());
 
       if (error) throw error;
 
@@ -156,7 +160,7 @@ export const BudgetProvider = ({ children }: { children: React.ReactNode }) => {
       setBudgets([]);
       setLoading(false);
     }
-  }, [user]);
+  }, [user, expenses]);
 
   return (
     <BudgetContext.Provider value={{ budgets, loading, fetchBudgets, addBudget, updateBudget, deleteBudget, getBudgetAlerts }}>

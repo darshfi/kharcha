@@ -115,7 +115,7 @@ const Analytics: React.FC = () => {
   // zero line to an edge and destroy the point of a diverging chart. Force it
   // symmetric so zero always sits in the middle.
   const peak = data.series.reduce((m, s) => Math.max(m, Math.abs(s.expense), s.income), 0);
-  const yDomain: [number, number] = peak > 0 ? [peak * 1.15, -peak * 1.15] : [1, -1];
+  const yDomain: [number, number] = peak > 0 ? [-peak * 1.15, peak * 1.15] : [-1, 1];
 
   return (
     <div className="stack">
