@@ -27,8 +27,8 @@ export async function syncCaptureQueue(native: CaptureBridge, client: ImportClie
     });
     if (error) {
       if (error.code === '22023') { native.reject(owner, entry.eventId); continue; }
-      throw new CaptureSyncError(error.code === 'PGRST202'
-        ? 'Database setup is needed before alerts can sync.'
+      throw new CaptureSyncError(['PGRST202', '42883', '42P01', '42703'].includes(error.code ?? '')
+        ? 'Database setup is needed before alerts can sync. Waiting alerts remain on this device.'
         : 'Alerts are waiting on this device. Open the app with a connection to retry.');
     }
     const result = data as { outcome?: string } | null;

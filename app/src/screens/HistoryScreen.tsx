@@ -51,14 +51,15 @@ export default function HistoryScreen({ navigation }: NativeStackScreenProps<Roo
         <Picker label="Category" value={filters.category} choices={[{ value: '', label: 'All categories' }, { value: 'income', label: 'Income' }, { value: 'uncategorized', label: 'Uncategorized' }, ...categories.map(c => ({ value: c.id, label: c.name }))]} onChange={category => setFilters(f => ({ ...f, category }))} />
         <Picker label="Sort" value={filters.sort} choices={[{ value: 'newest', label: 'Newest first' }, { value: 'category', label: 'By category' }]} onChange={sort => setFilters(f => ({ ...f, sort: sort as 'newest' | 'category' }))} />
       </ScrollView>
-      <Text style={{ color: theme.textSecondary, marginTop: 8 }}>{results.length} transaction{results.length === 1 ? '' : 's'} · Tap to edit</Text>
+      <Text style={{ color: theme.textSecondary, marginTop: 8 }}>{results.length} transaction{results.length === 1 ? '' : 's'} · Choose Edit to change a transaction</Text>
     </View>
     <SectionList sections={sections} keyExtractor={t => `${t.type}:${t.id}`} stickySectionHeadersEnabled
       contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled"
       renderSectionHeader={({ section }) => <Text style={[styles.section, { color: theme.textPrimary, backgroundColor: theme.bg }]}>{section.title}</Text>}
       renderItem={({ item }) => <TransactionRow transaction={item} category={categories.find(c => c.id === item.categoryId)}
         onDelete={() => deleteTransaction(item.id)}
-        onPress={() => navigation.navigate('EditTransaction', { transactionId: item.id, transactionType: item.type })} />}
+        onPress={() => navigation.navigate('EditTransaction', { transactionId: item.id, transactionType: item.type })}
+        onEdit={() => navigation.navigate('EditTransaction', { transactionId: item.id, transactionType: item.type })} />}
       ListEmptyComponent={<View style={styles.empty}><Text style={{ color: theme.textSecondary }}>{transactions.length ? 'No transactions match these filters.' : 'No transactions yet.'}</Text>
         {transactions.length > 0 && <Pressable onPress={() => setFilters(allHistoryFilters)}><Text style={{ color: theme.accent, marginTop: 16 }}>Clear filters</Text></Pressable>}</View>} />
   </View>;

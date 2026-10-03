@@ -71,8 +71,9 @@ internal object CaptureStorage {
     val settings=user(state,owner)
     val sources=settings.getJSONArray("sources")
     if(!settings.optBoolean("enabled") || (0 until sources.length()).none { sources.getString(it)==source } || postedAt<settings.optLong("enabledAt")) return
+    settings.put("lastNotificationAt",System.currentTimeMillis()).put("lastSourcePackage",source)
     val seen=settings.getJSONObject("seen")
-    if(seen.has(eventId)) return
+    if(seen.has(eventId)) { write(context,state); return }
     // Keep recent event hashes, never raw notification contents. The server retains permanent import tombstones.
     val cutoff=System.currentTimeMillis()-45L*24*60*60*1000
     seen.keys().asSequence().toList().forEach { if(seen.optLong(it)<cutoff) seen.remove(it) }
@@ -97,6 +98,9 @@ internal object CaptureStorage {
     return JSONObject().put("enabled",settings.optBoolean("enabled")).put("sources",settings.getJSONArray("sources"))
       .put("pending",settings.getJSONArray("queue").length()).put("skipped",settings.getJSONObject("skipped"))
       .put("saved",settings.optInt("saved")).put("dropped",settings.optInt("dropped"))
+      .put("activeForAccount",state.optString("activeUser")==owner)
+      .put("lastNotificationAt",settings.optLong("lastNotificationAt"))
+      .put("lastSourcePackage",settings.optString("lastSourcePackage"))
       .put("storageError",prefs(context).getBoolean("storageError",false))
   }
   @Synchronized fun pending(context: Context, owner: String): JSONArray {

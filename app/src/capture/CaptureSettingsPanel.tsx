@@ -29,7 +29,7 @@ const REASONS: Record<string, string> = {
   missing_or_conflicting_reference: 'Missing or conflicting transaction reference',
   invalid_date: 'Unclear date',
   stale_or_future_alert: 'Old or future alert',
-  self_transfer: 'Transfer between own accounts',
+  self_transfer: 'Own-account transfer skipped by an older app version',
   unsupported_format: 'Unsupported notification format',
   untrusted_sender: 'Sender skipped by an older app version',
   conflicting_import: 'Conflicting import values — add manually if needed',
@@ -103,11 +103,25 @@ export function CaptureSettingsPanel({ userId, onImported }: { userId: string | 
         <Text style={[styles.copy, label]}>{status?.sources.includes(source) ? '☑' : '☐'}  {name}</Text>
       </Pressable>)}
       <Text style={[styles.copy, secondary]}>Notification access: {status?.permissionGranted ? 'granted' : 'not granted'}</Text>
+      {status?.listenerConnected !== undefined && <Text style={[styles.copy, secondary]}>
+        Notification listener: {status.listenerConnected ? 'connected' : 'not connected'}
+      </Text>}
+      {status?.enabled && status.activeForAccount === false && <Text style={[styles.copy, { color: theme.warning }]}>
+        Capture is paused for this account. Reopen the app after signing in and loading your data.
+      </Text>}
+      {status?.permissionGranted && status.listenerConnected === false && <Text style={[styles.copy, { color: theme.warning }]}>
+        Android access is granted, but the listener is not connected. Turn Kharcha notification access off and back on in Android settings.
+      </Text>}
       <Pressable accessibilityRole="button" style={[styles.button, { borderColor: theme.border }]}
         onPress={() => { try { captureNative?.openNotificationSettings(); } catch { setError('Could not open Android notification settings.'); } }}>
         <Text style={{ color: theme.accent, fontWeight: '600' }}>Open Android notification access</Text>
       </Pressable>
       {status && <Text style={[styles.copy, secondary]}>{status.pending} waiting to sync · {status.saved} handled</Text>}
+      {status?.lastNotificationAt !== undefined && <Text style={[styles.copy, secondary]}>
+        {status.lastNotificationAt > 0
+          ? `Last selected-app alert: ${new Date(status.lastNotificationAt).toLocaleString()}${status.lastSourcePackage ? ` · ${CAPTURE_SOURCES.find(([source]) => source === status.lastSourcePackage)?.[1] ?? 'Selected app'}` : ''}`
+          : 'No new alerts received from your selected apps yet.'}
+      </Text>}
       {status && status.dropped > 0 && <Text style={[styles.copy, { color: theme.warning }]}>{status.dropped} alerts were skipped because the device queue was full. Check your bank history and add missing transactions manually.</Text>}
       {status && Object.entries(status.skipped).filter(([, count]) => count > 0).map(([reason, count]) =>
         <Text key={reason} style={[styles.copy, secondary]}>{count} skipped: {REASONS[reason] ?? 'Unclear alert'}</Text>)}

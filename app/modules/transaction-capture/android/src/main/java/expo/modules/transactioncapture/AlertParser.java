@@ -48,7 +48,6 @@ public final class AlertParser {
   public static Result parse(String text, long postedAt, TimeZone zone) {
     if (text == null || text.length() > 8000) return skip("unsupported_format");
     text = text.replace('\u00a0',' ');
-    if (Pattern.compile("\\b(own account|self[ -]transfer|to yourself|between your accounts)\\b", Pattern.CASE_INSENSITIVE).matcher(text).find()) return skip("self_transfer");
     if (BLOCKED.matcher(text).find()) return skip("not_completed_payment");
     boolean debit=DEBIT.matcher(text).find(), credit=CREDIT.matcher(text).find();
     if (debit == credit) return skip("unclear_direction");

@@ -37,8 +37,8 @@ public class AlertParserTest {
     skip("Rs.250 paid UPI Ref 426812345678 UTR 426812345679","missing_or_conflicting_reference");
     skip("Rs.250 debited on 30-02-2026. Ref 426812345678","invalid_date");
     skip("Rs.250 debited on 24-09-2026. Ref 426812345678","stale_or_future_alert");
-    skip("Rs.250 sent to own account. Ref 426812345678","self_transfer");
-    skip("Rs.250 self-transfer paid. Ref 426812345678","self_transfer");
+    check(parse("Rs.250 sent to own account. Ref 426812345678").accepted(),"completed own-account debit is recorded");
+    check(parse("Rs.250 self-transfer paid. Ref 426812345678").accepted(),"completed self-transfer is recorded");
     skip("Rs.0 paid. Ref 426812345678","unclear_amount");
     skip("USD 250 paid. Ref 426812345678","unclear_amount");
     check(parse("INR 250 received Ref ABC123456").date.equals("2026-10-02"),"fallback date local");
@@ -82,6 +82,23 @@ public class AlertParserTest {
     check(paidYou.accepted() && "income".equals(paidYou.type),"paid you is income, not expense");
     skip("Sample Person paid you ₹250 NA","missing_or_conflicting_reference");
     check("expense".equals(parse("You paid Sample Person ₹250 UPI Ref 123456789012").type),"you paid remains expense");
+    check("expense".equals(parse("₹1 sent to own account UPI Ref 123456789012").type),"one-rupee own-account debit");
+    check("income".equals(parse("₹1 received from own account UPI Ref 123456789012").type),"one-rupee own-account credit");
+    skip("Self-transfer ₹1 pending UPI Ref 123456789012","not_completed_payment");
+    java.util.List<AlertBatchParser.Parsed> batch=AlertBatchParser.parse("com.google.android.apps.messaging","2 new messages",
+      java.util.Arrays.asList(new AlertBatchParser.Message("Dr INR 1.00 UPI/DR/123456789012",auPosted),
+        new AlertBatchParser.Message("Credited INR 1.00 UPI/CR/123456789012",auPosted+1000)),auPosted+1000,zone);
+    check(batch.size()==2 && batch.get(0).result.accepted() && batch.get(1).result.accepted(),"bundled SMS debit and credit accepted separately");
+    check("expense".equals(batch.get(0).result.type) && "income".equals(batch.get(1).result.type),"bundled opposite directions remain distinct");
+    check(batch.get(0).timestamp==auPosted && batch.get(1).timestamp==auPosted+1000,"individual message timestamps retained for opt-in filtering");
+    java.util.List<AlertBatchParser.Parsed> mixed=AlertBatchParser.parse("com.google.android.apps.messaging","2 new messages",
+      java.util.Arrays.asList(new AlertBatchParser.Message("OTP 123456 for INR 1 paid",auPosted),
+        new AlertBatchParser.Message("Dr INR 1.00 UPI/DR/123456789013",auPosted+1000)),auPosted+1000,zone);
+    check(!mixed.get(0).result.accepted() && mixed.get(1).result.accepted(),"unrelated OTP does not suppress separate completed payment");
+    java.util.List<AlertBatchParser.Parsed> untimed=AlertBatchParser.parse("com.google.android.apps.messaging","2 new messages",
+      java.util.Arrays.asList(new AlertBatchParser.Message("Dr INR 1.00 UPI/DR/123456789012",0),
+        new AlertBatchParser.Message("Credited INR 1.00 UPI/CR/123456789012",0)),auPosted,zone);
+    check(!untimed.get(0).result.accepted() && !untimed.get(1).result.accepted(),"untimestamped summaries cannot replay pre-opt-in alerts");
     System.out.println("AlertParser: "+tests+" checks passed");
   }
 }

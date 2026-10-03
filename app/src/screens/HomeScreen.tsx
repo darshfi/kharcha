@@ -39,9 +39,9 @@ export default function HomeScreen() {
 
         <View style={styles.metricsRow}>
           <View style={[styles.card, styles.metricCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={[styles.label, { color: theme.textSecondary }]}>Daily avg</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Daily avg · month</Text>
             <Text style={[styles.bigAmount, { color: theme.textPrimary }]}>
-              ₹{Math.round(dailyAvg).toLocaleString('en-IN')}
+              ₹{dailyAvg.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Text>
           </View>
           <View style={[styles.card, styles.metricCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -67,9 +67,9 @@ export default function HomeScreen() {
           )}
         </Animated.View>
 
-        <MotionPressable style={styles.sectionHeader} accessibilityLabel="View all transactions" onPress={() => navigation.navigate('History')}>
+        <MotionPressable style={styles.sectionHeader} accessibilityLabel="View and edit all transactions" onPress={() => navigation.navigate('History')}>
           <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent transactions</Text>
-          <Text style={[styles.sectionLink, { color: theme.accent }]}>View all →</Text>
+          <Text style={[styles.sectionLink, { color: theme.accent }]}>View all / edit →</Text>
         </MotionPressable>
         {recent.length === 0 ? (
           <View style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.border }]}>

@@ -178,6 +178,43 @@ describe('dates, parsing and summaries', () => {
     expect(result.totalIncome).toBe(300);
     expect(result.avgExpensePerDay).toBe(50.125);
   });
+  it('uses every recorded expense for the category pie without mixing in income or pending rows', () => {
+    const food = { id: categoryId, name: 'Food', symbol: 'F', color: '#123456' };
+    const rows = [
+      { ...draft(), date: '2025-12-01', amount: 10, categoryId },
+      { ...draft(), date: '2026-09-30', amount: 20, categoryId: null },
+      { ...draft(), date: '2026-10-03', amount: 30, categoryId },
+      { ...draft(), type: 'income' as const, date: '2026-10-03', amount: 1000, categoryId: null },
+      { ...draft(), status: 'pending' as const, amount: 500 },
+    ];
+    const result = getInsights(rows, [food], new Date(2026, 9, 3));
+    expect(result.allTimeSpent).toBe(60);
+    expect(result.allTimeCategoryRows.map(r => [r.id, r.amount])).toEqual([[categoryId, 40], ['', 20]]);
+    expect(result.allTimeCategoryRows[0].category?.name).toBe('Food');
+    expect(result.allTimeCategoryRows.reduce((sum, r) => sum + r.amount, 0)).toBe(result.allTimeSpent);
+    expect(result.totalSpent).toBe(30);
+    expect(result.categoryRows[0].amount).toBe(30);
+  });
+  it('keeps the all-time pie populated when the current month has no spending', () => {
+    const result = getInsights([{ ...draft(), date: '2026-09-01', amount: 12.50 }], [], new Date(2026, 9, 3));
+    expect(result.totalSpent).toBe(0);
+    expect(result.allTimeSpent).toBe(12.50);
+    expect(result.allTimeCategoryRows).toHaveLength(1);
+    expect(result.avgExpensePerDay).toBe(0);
+  });
+  it('keeps sub-rupee daily averages and includes zero-spend calendar days', () => {
+    const result = getInsights([{ ...draft(), date: '2026-10-03', amount: 1 }], [], new Date(2026, 9, 3));
+    expect(result.avgExpensePerDay).toBeCloseTo(1 / 3);
+    expect(result.spentThroughToday).toBe(1);
+    expect(result.dailyAverageDays).toBe(3);
+  });
+  it('excludes future-dated spending from the elapsed-day average', () => {
+    const rows = [{ ...draft(), date: '2026-10-03', amount: 1 }, { ...draft(), date: '2026-10-25', amount: 90 }];
+    const result = getInsights(rows, [], new Date(2026, 9, 3));
+    expect(result.spentThroughToday).toBe(1);
+    expect(result.avgExpensePerDay).toBeCloseTo(1 / 3);
+    expect(result.allTimeSpent).toBe(91);
+  });
   it('allows negative balances when expenses exceed income', () => {
     expect(getInsights([{ ...draft(), amount: 250 }], []).totalBalance).toBe(-250);
   });

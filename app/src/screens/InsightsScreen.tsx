@@ -11,7 +11,7 @@ function InsightsScreen() {
   const { transactions, categories } = useStore();
 
   const {
-    totalSpent, totalIncome, categoryRows, modeRows, days, chartDays, monthDays,
+    totalSpent, totalIncome, allTimeCategoryRows, allTimeSpent, spentThroughToday, dailyAverageDays, modeRows, days, chartDays, monthDays,
     weekSpent, maxDay, maxMonthDay, maxValue, avgExpensePerDay, avgExpensePerCategory,
   } = getInsights(transactions, categories);
 
@@ -71,12 +71,12 @@ function InsightsScreen() {
 
         {/* Averages */}
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Averages</Text>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>This month: averages</Text>
           <View style={styles.averagesRow}>
             <View style={styles.avgItem}>
               <Text style={[styles.avgLabel, { color: theme.textSecondary }]}>Avg / day</Text>
               <Text style={[styles.avgValue, { color: theme.textPrimary }]}>
-                ₹{Math.round(avgExpensePerDay).toLocaleString('en-IN')}
+                ₹{avgExpensePerDay.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
             </View>
             <View style={styles.avgItem}>
@@ -86,19 +86,22 @@ function InsightsScreen() {
               </Text>
             </View>
           </View>
+          <Text style={[styles.footnote, { color: theme.textSecondary }]}>
+            Daily average: ₹{spentThroughToday.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ÷ {dailyAverageDays} calendar day{dailyAverageDays === 1 ? '' : 's'} elapsed this month. Includes days with no spending.
+          </Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Spending by category</Text>
-          {categoryRows.length === 0 ? (
-            <Text style={{ color: theme.textTertiary, paddingVertical: 8 }}>No expenses this month.</Text>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>Spending by category · All time</Text>
+          {allTimeCategoryRows.length === 0 ? (
+            <Text style={{ color: theme.textTertiary, paddingVertical: 8 }}>No recorded expenses yet.</Text>
           ) : (
             <View style={styles.pieContainer}>
               <Svg width={160} height={160} viewBox="0 0 42 42">
                 {(() => {
                   let cumulativePercent = 0;
-                  return categoryRows.map(({ id, category, amount }) => {
-                    const percent = totalSpent > 0 ? (amount / totalSpent) * 100 : 0;
+                  return allTimeCategoryRows.map(({ id, category, amount }) => {
+                    const percent = allTimeSpent > 0 ? (amount / allTimeSpent) * 100 : 0;
                     if (percent >= 99.999) {
                       cumulativePercent += percent;
                       return <Circle key={id} cx={21} cy={21} r={15} fill={category?.color || theme.accent} />;
@@ -127,20 +130,23 @@ function InsightsScreen() {
                 })()}
               </Svg>
               <View style={styles.pieLegend}>
-                {categoryRows.map(({ id, category, amount }) => (
+                {allTimeCategoryRows.map(({ id, category, amount }) => (
                   <View key={id} style={styles.legendRow}>
                     <View style={[styles.legendDot, { backgroundColor: category?.color || theme.accent }]} />
                     <Text style={{ color: theme.textPrimary, fontSize: 12, flex: 1 }}>
                       {category?.name ?? 'Uncategorised'}
                     </Text>
                     <Text style={{ color: theme.textTertiary, fontSize: 12 }}>
-                      {totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0}%
+                      {allTimeSpent > 0 ? Math.round((amount / allTimeSpent) * 100) : 0}%
                     </Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
+          {allTimeSpent > 0 && <Text style={[styles.footnote, { color: theme.textSecondary }]}>
+            ₹{allTimeSpent.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} across all recorded expenses
+          </Text>}
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>

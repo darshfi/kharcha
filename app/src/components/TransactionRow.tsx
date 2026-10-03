@@ -6,15 +6,17 @@ import { enter, exit, itemLayout, pressSpring, feedback, useMotionDisabled } fro
 import { Transaction } from '../types/transaction';
 import { Category } from '../data/categories';
 import { useTheme } from '../theme/ThemeProvider';
+import MotionPressable from './MotionPressable';
 
 interface Props {
   transaction: Transaction;
   category?: Category;
   onDelete: () => Promise<void>;
   onPress?: () => void;
+  onEdit?: () => void;
 }
 
-export default function TransactionRow({ transaction, category, onDelete, onPress }: Props) {
+export default function TransactionRow({ transaction, category, onDelete, onPress, onEdit }: Props) {
   const { theme } = useTheme();
   const pan = useSharedValue(0);
   const scale = useSharedValue(1);
@@ -47,7 +49,7 @@ export default function TransactionRow({ transaction, category, onDelete, onPres
       pan.value = reduced ? 0 : withTiming(0, { duration: 180 });
       crossed.value = false;
     });
-  const tap = Gesture.Tap().maxDistance(10)
+  const tap = Gesture.Tap().maxDistance(12)
     .onBegin(() => { if (onPress) scale.value = reduced ? 1 : withSpring(0.985, pressSpring); })
     .onFinalize(() => { scale.value = reduced ? 1 : withSpring(1, pressSpring); })
     .onEnd((_event, success) => {
@@ -104,11 +106,23 @@ export default function TransactionRow({ transaction, category, onDelete, onPres
         </View>
       </Animated.View>
       </GestureDetector>
+      {onEdit && <View style={[styles.editActions, { borderTopColor: theme.border }]}>
+        <MotionPressable
+          accessibilityLabel={`Edit ${transaction.description || transaction.merchantName || 'transaction'}`}
+          accessibilityHint="Change this transaction’s amount, description, category, payment mode or date."
+          onPress={() => { if (!deleting.current) onEdit(); }}
+          style={[styles.editButton, { backgroundColor: theme.accentSoft }]}
+        >
+          <Text style={{ color: theme.accent, fontSize: 14, fontWeight: '600' }}>Edit</Text>
+        </MotionPressable>
+      </View>}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  editActions: { alignItems: 'flex-end', borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 12, paddingVertical: 4 },
+  editButton: { minHeight: 44, minWidth: 72, alignItems: 'center', justifyContent: 'center', borderRadius: 8, paddingHorizontal: 16 },
   deleteHint: { justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 },
   container: {
     borderRadius: 12,

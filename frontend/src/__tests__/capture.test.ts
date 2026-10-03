@@ -23,6 +23,22 @@ function fixture(entries = [candidate]) {
   return { native, client, queue: () => queue };
 }
 describe('durable notification import', () => {
+  it('explains a missing migration and retains alerts without acknowledging them', async () => {
+    const f = fixture();
+    f.client.rpc.mockResolvedValue({ data: null as any, error: { code: 'PGRST202' } });
+    await expect(syncCaptureQueue(f.native, f.client, 'user-a')).rejects.toThrow('Database setup is needed');
+    expect(f.queue()).toEqual([candidate]);
+    expect(f.native.acknowledge).not.toHaveBeenCalled();
+    expect(f.native.reject).not.toHaveBeenCalled();
+  });
+  it('imports one-rupee debit and credit with the same reference as distinct events', async () => {
+    const f = fixture([{ ...candidate, amount: '1.00' },
+      { ...candidate, amount: '1.00', type: 'income', eventId: 'b'.repeat(64) }]);
+    expect(await syncCaptureQueue(f.native, f.client, 'user-a')).toBe(2);
+    expect(f.client.rpc).toHaveBeenNthCalledWith(1, 'import_notification_transaction', expect.objectContaining({ p_kind: 'expense', p_amount: '1.00' }));
+    expect(f.client.rpc).toHaveBeenNthCalledWith(2, 'import_notification_transaction', expect.objectContaining({ p_kind: 'income', p_amount: '1.00' }));
+    expect(f.queue()).toEqual([]);
+  });
   it('sends the expected owner and typed amount, then acknowledges success', async () => {
     const { native, client, queue } = fixture();
     expect(await syncCaptureQueue(native, client, 'user-a')).toBe(1);

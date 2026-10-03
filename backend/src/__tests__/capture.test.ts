@@ -60,6 +60,17 @@ test('atomic capture migration and account isolation', async t => {
     assert.equal((await db.query('SELECT * FROM incomes WHERE id=$1',[result.id])).rows.length,1);
     assert.equal((await db.query('SELECT * FROM expenses WHERE id=$1',[result.id])).rows.length,0);
   });
+  await t.test('one-rupee own-account debit and credit share a reference without losing either direction',async () => {
+    const debit=(await capture('one-rupee-debit','123456789099','expense',1)).rows[0].result;
+    const credit=(await capture('one-rupee-credit','123456789099','income',1)).rows[0].result;
+    assert.equal(debit.outcome,'imported'); assert.equal(credit.outcome,'imported');
+    assert.notEqual(debit.id,credit.id);
+    assert.equal((await capture('one-rupee-debit-retry','123456789099','expense',1)).rows[0].result.outcome,'duplicate');
+    assert.equal((await capture('one-rupee-credit-retry','123456789099','income',1)).rows[0].result.outcome,'duplicate');
+    const expense=await db.query<{ amount: string }>('SELECT amount FROM expenses WHERE id=$1',[debit.id]);
+    const income=await db.query<{ amount: string }>('SELECT amount FROM incomes WHERE id=$1',[credit.id]);
+    assert.equal(Number(expense.rows[0].amount),1); assert.equal(Number(income.rows[0].amount),1);
+  });
   await t.test('expected account prevents switch races and user spoofing',async () => {
     await assert.rejects(capture('j','426812345681','expense',250,other),/Account changed/);
     await db.query("SELECT set_config('app.user',$1,false)",[other]);

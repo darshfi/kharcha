@@ -26,13 +26,21 @@ Capture consent and queues are per account. Switching accounts changes the activ
 
 Autosave requires exactly one amount, one debit/credit direction and one reference in a completed INR alert. Bank balance is separate from transaction amount. Indian/Western comma grouping and one/two decimal places are accepted; malformed numeric tokens cannot be truncated into a smaller amount. An explicit date must be valid and within seven days before or one day after the notification's posted date; otherwise the device-local posted date is used.
 
-OTP/verification, requests, pending/failed/reversed payments, due/reminder/scheduled alerts, promotions/cashback, conflicting values, explicit self-transfers, missing references and unsupported multiline messages are skipped. References are conservatively extracted from UPI ref/txn, UTR/RRN, reference, transaction ID/no, or txn ID/no labels. An unfamiliar provider format may be skipped even when the payment completed; add it manually and extend parser fixtures before broadening support.
+OTP/verification, requests, pending/failed/reversed payments, due/reminder/scheduled alerts, promotions/cashback, conflicting values, missing references and unsupported summaries are skipped. Completed transfers between your own accounts are recorded when the debit/credit direction, amount and reference are clear; expense and income directions remain separate even when they share a reference. References are conservatively extracted from UPI ref/txn, UTR/RRN, reference, transaction ID/no, txn ID/no labels, or bank `UPI/DR/reference` and `UPI/CR/reference` fields. An unfamiliar provider format may be skipped even when the payment completed; add it manually and extend parser fixtures before broadening support.
+
+Unread Messages notifications may contain several alerts in `EXTRA_MESSAGES`. Each timestamped MessagingStyle message is parsed independently, rather than joining their amounts or skipping the whole batch. The per-message arrival time retains the opt-in boundary and local date. OTPs or failed payments in one message do not suppress a separate completed payment. Multiple InboxStyle text lines and bundled messages without individual timestamps remain unsupported: reposting a summary must not replay alerts that arrived before opt-in. Group summary notifications are ignored to avoid duplicating their child notifications. Only parsed values/reason counts reach storage; message text is transient.
 
 For Google/Samsung Messages, the sender name is unrestricted: unknown banks, DLT tags, friendly names, or a missing sender do not block capture. Only the message body is parsed, so names do not change the payment direction. A clear completed payment amount, direction, and reference are still required. This is a text-format filter, not cryptographic verification of a sender. Bank/UPI application sources still use exact user-selected package names. HDFC and Kotak include current and legacy app packages; only choose the version installed on your device.
 
 AU Bank-style alerts support `Dr INR …`, `Cr INR …`, and slash references such as `UPI/DR/123456789012/…` and `UPI/CR/123456789012/…`. The reference direction must agree with the payment direction. A sentence-ending period after an amount is accepted; malformed precision and conflicting amounts/references remain rejected. The bank-reported balance is kept separate from the transaction amount.
 
 This parser runs natively: install the updated Android APK after a parser change. Previously skipped notifications cannot be reprocessed because their raw text was never stored. Add those transactions manually (or paste the SMS in Add); subsequent new alerts use the updated parser. Historical sender-skip counts remain visible as skips from an older build.
+
+## Diagnosing permission granted but no saved transactions
+
+Android notification permission alone does not enable capture: the in-app switch must be on and the actual source app (for example Google Messages) must be selected. Settings now shows whether the listener is connected, whether this account is the active native owner, and the time/source of its last observed selected-app alert. These diagnostics contain no notification contents. A granted permission with a disconnected listener can be repaired by turning Kharcha notification access off and back on in Android settings.
+
+If new alerts increase skipped counts, the native parser saw them but could not safely import them; use the displayed reason to distinguish an unsupported format or missing reference. Historical own-account-transfer skips are labeled as belonging to an older app version. If pending alerts increase and Settings reports database setup is needed, apply `database/automatic-capture.sql` and retry. A missing RPC or incomplete migration prevents ledger saving, **not native capture**; the encrypted queue remains intact and is not acknowledged. No live database setup is assumed by these source changes. If handled counts increase, imports or duplicate receipts succeeded; the app retries a failed visible-ledger refresh while open.
 
 Skipped alerts retain only a reason count. They never enter the ledger. Source event hashes are retained locally for 45 days (bounded to 4,000); at most 1,000 accepted unsynced candidates are kept per account. A full queue skips subsequent candidates and increments a visible dropped count; it never overwrites pending entries. Saved/handled counts include duplicate alerts. Settings exposes these limits and suggests checking bank history for missed transactions.
 
@@ -54,7 +62,7 @@ Production parser checks (JDK, without Android):
 
 ```sh
 mkdir -p /tmp/kharcha-capture-parser
-javac -d /tmp/kharcha-capture-parser app/modules/transaction-capture/android/src/main/java/expo/modules/transactioncapture/AlertParser.java app/modules/transaction-capture/tests/AlertParserTest.java
+javac -d /tmp/kharcha-capture-parser app/modules/transaction-capture/android/src/main/java/expo/modules/transactioncapture/AlertParser.java app/modules/transaction-capture/android/src/main/java/expo/modules/transactioncapture/AlertBatchParser.java app/modules/transaction-capture/tests/AlertParserTest.java
 java -cp /tmp/kharcha-capture-parser expo.modules.transactioncapture.AlertParserTest
 ```
 
@@ -64,6 +72,8 @@ Type check: `cd app && npx tsc --noEmit`.
 Native module check after prebuild: `cd app/android && ./gradlew :transaction-capture:compileDebugKotlin`.
 
 Verified locally on 2026-10-02: production parser 40 checks, import queue/refresh retry 10 tests, migration/RPC 10 tests, app/backend TypeScript, Expo autolinking, native Kotlin and Java compilation, and merged Android app manifest. The native build used SDK 36, minSdk 24, JDK 21, Gradle 9.3.1, Expo SDK 57 and React Native 0.86. The merged manifest contains the protected listener and disables Android backup. These checks do not constitute a release-device test or application of the live database migration.
+
+Capture follow-up verified locally on 2026-10-03: production parser/batch 69 checks, queue 12 tests, migration/RPC 11 tests, and app TypeScript. Regression cases include ₹1 own-account transfers, same-reference debit/credit pairs, independent bundled alerts, timestamp-less summary rejection, and missing database migrations preserving pending alerts. These results do not establish the exact state of a user's notification listener or live database; the Settings diagnostics and a sanitized alert example are needed to identify a device-specific failure.
 
 The PGlite tests cover migration reruns, simultaneous Promise-based duplicate callers, event retries, references across source apps, balance/amount separation, owned categories, manual-reference dedupe, credit direction, deletion tombstones, input validation, anonymous calls, account-switch/spoof guards, and direct table privilege/RLS restrictions. PGlite serializes its single connection; a real multi-connection PostgreSQL race test remains part of deployment verification.
 

@@ -65,3 +65,15 @@ The October 3 ARM64 development APK rebuild now passes. Missing dependencies wer
 Use `npm run android:apk` in `app` to build an ARM64 development APK. The tracked `scripts/android-dependency-alignment.gradle` applies minimum Core/Lifecycle/annotations versions already requested by this SDK 57 application. This fixes Gradle 9 compile/runtime consistency conflicts exposed by Expo's compile-only modules-core dependency. It keeps consistent resolution enabled. An optional `KHARCHA_LOCAL_MAVEN` environment variable selects a local verified Maven repository; otherwise official configured repositories are used. The local dependency cache and generated native build outputs remain outside Git.
 
 Reference: [Gradle dependency resolution consistency](https://docs.gradle.org/current/userguide/dependency_resolution_consistency.html).
+
+## Follow-up: capture, editing and insight ranges
+
+Timestamped MessagingStyle notification messages are parsed individually rather than rejecting an entire bundle of unread SMS. Each message retains its arrival time for capture opt-in checks. Completed own-account transfers can now produce both expense and income entries; the import ledger keeps their directions separate even when they share a reference, while repeated alerts remain duplicates. Untimestamped summaries remain unsupported. Settings now shows listener connection, active-account status and the last selected-app alert time, without retaining raw notification text. Missing database setup leaves accepted alerts queued with an explicit setup message.
+
+Home links to history with “View all / edit”; history rows expose a visible Edit button outside the swipe gesture. Existing editing supports amount, description, category, payment mode and calendar date, preserving import references.
+
+Daily average is this month's confirmed expenses through today divided by elapsed calendar days, including days with no spending. Future dates do not inflate the numerator; amounts display two decimal places and Insights explains the formula. The category pie uses all confirmed recorded expenses across all dates. Income is separate from the spending pie, and other monthly metrics retain their labelled ranges.
+
+Review reference: [Android timestamped messaging notifications](https://developer.android.com/reference/android/app/Notification.MessagingStyle.Message).
+
+Verification for this follow-up: 67 frontend tests, 35 backend tests and 69 native parser/batch checks passed; app TypeScript passed. The final Android rebuild succeeded and its archive and matching signing certificate were verified. Updated development APK: `/home/darsh/projects/exp/kharcha-builds/kharcha-2026-10-03-capture-edit-fix.apk`. It needs Metro and an in-place install over the previous development app. Real notification delivery and editing interactions still need a physical-device check; no phone is connected here. Previously skipped raw notifications are not retained or replayed.

@@ -20,7 +20,8 @@ class TransactionCaptureModule : Module() {
     Function("getStatus") { owner: String ->
       val component=ComponentName(context,CaptureListenerService::class.java).flattenToString()
       val access=Settings.Secure.getString(context.contentResolver,"enabled_notification_listeners").orEmpty().split(":").contains(component)
-      CaptureStorage.status(context,owner).put("permissionGranted",access).toString()
+      CaptureStorage.status(context,owner).put("permissionGranted",access)
+        .put("listenerConnected",CaptureListenerService.connected).toString()
     }
     Function("getPending") { owner: String -> CaptureStorage.pending(context,owner).toString() }
     Function("acknowledge") { owner: String, eventId: String -> CaptureStorage.acknowledge(context,owner,eventId) }

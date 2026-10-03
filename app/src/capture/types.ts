@@ -20,6 +20,10 @@ export interface CaptureStatus {
   saved: number;
   dropped: number;
   storageError: boolean;
+  listenerConnected?: boolean;
+  activeForAccount?: boolean;
+  lastNotificationAt?: number;
+  lastSourcePackage?: string;
 }
 
 export interface CaptureBridge {

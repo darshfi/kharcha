@@ -5,11 +5,22 @@ import { localDate } from './dates';
 export function getInsights(transactions: Transaction[], categories: Category[], now = new Date()) {
   const confirmed = transactions.filter(txn => txn.status === 'confirmed');
   const totalBalance = confirmed.reduce((sum, txn) => sum + (txn.type === 'income' ? txn.amount : -txn.amount), 0);
-  const ym = localDate(now).slice(0, 7);
+  const today = localDate(now);
+  const ym = today.slice(0, 7);
   const monthExpenses = confirmed.filter(txn => txn.date.startsWith(ym) && txn.type === 'expense');
   const monthIncome = confirmed.filter(txn => txn.date.startsWith(ym) && txn.type === 'income');
   const totalSpent = monthExpenses.reduce((sum, txn) => sum + txn.amount, 0);
   const totalIncome = monthIncome.reduce((sum, txn) => sum + txn.amount, 0);
+  // Daily average is spending through today / elapsed calendar days, including zero-spend days.
+  const spentThroughToday = monthExpenses.filter(txn => txn.date <= today).reduce((sum, txn) => sum + txn.amount, 0);
+  const dailyAverageDays = now.getDate();
+  // The category pie covers the entire recorded expense ledger, not the monthly metrics.
+  const allExpenses = confirmed.filter(txn => txn.type === 'expense');
+  const allTimeSpent = allExpenses.reduce((sum, txn) => sum + txn.amount, 0);
+  const allTimeTotals = new Map<string, number>();
+  allExpenses.forEach(txn => allTimeTotals.set(txn.categoryId ?? '', (allTimeTotals.get(txn.categoryId ?? '') ?? 0) + txn.amount));
+  const allTimeCategoryRows = [...allTimeTotals.entries()].sort((a, b) => b[1] - a[1])
+    .map(([id, amount]) => ({ id, amount, category: categories.find(category => category.id === id) }));
   const totals = new Map<string, number>();
   monthExpenses.forEach(txn => totals.set(txn.categoryId ?? '', (totals.get(txn.categoryId ?? '') ?? 0) + txn.amount));
   const categoryRows = [...totals.entries()].sort((a, b) => b[1] - a[1])
@@ -33,12 +44,12 @@ export function getInsights(transactions: Transaction[], categories: Category[],
     return { key, label: String(index + 1), value: monthExpenses.filter(txn => txn.date === key).reduce((sum, txn) => sum + txn.amount, 0) };
   });
   return {
-    totalBalance, totalSpent, totalIncome, categoryRows, modeRows, days, chartDays, monthDays,
+    totalBalance, totalSpent, totalIncome, categoryRows, allTimeCategoryRows, allTimeSpent, spentThroughToday, dailyAverageDays, modeRows, days, chartDays, monthDays,
     weekSpent: days.reduce((sum, day) => sum + day.value, 0),
     maxDay: Math.max(1, ...days.map(day => day.value)),
     maxMonthDay: Math.max(1, ...monthDays.map(day => day.value)),
     maxValue: Math.max(1, ...chartDays.flatMap(day => [day.expense, day.income])),
-    avgExpensePerDay: totalSpent / now.getDate(),
+    avgExpensePerDay: spentThroughToday / dailyAverageDays,
     avgExpensePerCategory: categoryRows.length ? totalSpent / categoryRows.length : 0,
     biggest: monthExpenses.reduce<Transaction | null>((max, txn) => !max || txn.amount > max.amount ? txn : max, null),
   };
